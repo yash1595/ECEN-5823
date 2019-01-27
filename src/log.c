@@ -9,6 +9,7 @@
 #include "log.h"
 #include <stdbool.h>
 
+#if INCLUDE_LOGGING
 /**
  * @return a timestamp value for the logger, typically based on a free running timer.
  * This will be printed at the beginning of each log message.
@@ -33,3 +34,12 @@ void logInit(void)
 	RETARGET_SerialCrLf(true);
 	LOG_INFO("Initialized Logging");
 }
+
+/**
+ * Block for chars to be flushed out of the serial port.  Important to do this before entering SLEEP() or you may see garbage chars output.
+ */
+void logFlush(void)
+{
+	RETARGET_SerialFlush();
+}
+#endif

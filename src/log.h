@@ -30,7 +30,7 @@
  *  Even after turning logging on with INCLUDE_LOGGING, debug logging is off by default.
  *   * To turn debug logging on for a specific .c file, #define INCLUDE_LOG_DEBUG 1 at the top of the file
  *       before the #include "log.h" reference.
- *   * To turn on for all files #define INCLUDE_LOG_DEBUG in the project configuration.
+ *   * To turn on for all files #define INCLUDE_LOG_DEBUG 1 in the project configuration.
  */
 #ifndef LOG_ERROR
 #define LOG_ERROR(message,...) \
@@ -62,11 +62,17 @@
 #if INCLUDE_LOGGING
 #define LOG_DO(message,level, ...) \
 	printf( "%5"PRIu32":%s:%s: " message "\n", loggerGetTimestamp(), level, __func__, ##__VA_ARGS__ )
-#else
-	#define LOG_DO(message,level, ...)
-#endif
-
 void logInit();
 uint32_t loggerGetTimestamp();
+void logFlush();
+#else
+/**
+ * Remove all logging related code on builds where logging is not enabled
+ */
+#define LOG_DO(message,level, ...)
+static inline void logInit() {}
+static inline void logFlush() {}
+#endif
+
 
 #endif /* SRC_LOG_H_ */
