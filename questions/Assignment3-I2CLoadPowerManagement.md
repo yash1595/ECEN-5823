@@ -3,11 +3,11 @@ See [Mastering Markdown](https://guides.github.com/features/mastering-markdown/)
 
 *Be sure to take measurements in the "Default" configuration of the profiler to ensure your logging logic is not impacting current/time measurements.*
 
-*Please include screenshots of the profiler window detailing each current measurement captured.  See [Shared instruction pdf](https://drive.google.com/file/d/1tQWyi4Kt-xWc8KJDOvbhgvy5WPs7aZNK/view?usp=sharing) for instructions.* 
+*Please include screenshots of the profiler window detailing each current measurement captured.  See [Shared document](https://docs.google.com/document/d/1Ro9G2Nsr_ZXDhBYJ6YyF9CPivb--6UjhHRmVhDGySag/edit?usp=sharing) for instructions.* 
 
 1. What is the average current per period?
    Screenshot:  
-   ![Avg_current_per_period](link-to-screenshot-image)
+   ![Avg_current_per_period](screenshots/sampleimage.jpg)  
 2. What is the average current when the Si7021 is Load Power Management OFF?
    Screenshot:  
    ![Avg_current_lpmOFF](link-to-screenshot-image)
