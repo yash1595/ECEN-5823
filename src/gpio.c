@@ -13,19 +13,21 @@
  * TODO: define these.  See the radio board user guide at https://www.silabs.com/documents/login/user-guides/ug279-brd4104a-user-guide.pdf
  * and GPIO documentation at https://siliconlabs.github.io/Gecko_SDK_Doc/efm32g/html/group__GPIO.html
  */
-#define	LED0_port
-#define LED0_pin
-#define LED1_port
-#define LED1_pin
+#define	LED0_port gpioPortF
+#define LED0_pin  (6)
+#define LED1_port gpioPortF
+#define LED1_pin  (5)
 
 void gpioInit()
 {
-	GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateStrong);
-	//GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateWeak);
-	GPIO_PinModeSet(LED0_port, LED0_pin, gpioModePushPull, false);
-	GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthWeakAlternateStrong);
-	//GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthWeakAlternateWeak);
 	GPIO_PinModeSet(LED1_port, LED1_pin, gpioModePushPull, false);
+	//GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateStrong);
+	//GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateWeak);
+	//GPIO_PinModeSet(LED0_port, LED0_pin, gpioModePushPull, false);
+	GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthStrongAlternateStrong);
+	//GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthWeakAlternateWeak);
+	gpioLed1SetOff();
+
 }
 
 void gpioLed0SetOn()
