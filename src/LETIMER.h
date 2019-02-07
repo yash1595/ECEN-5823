@@ -76,7 +76,7 @@ static const gecko_configuration_t config = {
 #define COMP0   ((uint32_t)(0X01))
 #define COMP1   ((uint32_t)(0X02))
 #define TimerInt  ((uint32_t)(0X03))
-#define SLEEP_MODE  sleepEM1
+#define SLEEP_MODE  sleepEM2
 typedef enum State{Set=1,Reset=0};
 /*#define CLOCK_DIV
 #define CLOCK_SEL

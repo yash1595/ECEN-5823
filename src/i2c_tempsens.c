@@ -40,7 +40,7 @@
 #include "bsp.h"
 #include "i2c_tempsens.h"
 #include "gpio.h"
-#include "LETIMER.h"
+//#include "LETIMER.h"
 
 /*******************************************************************************
  **************************   GLOBAL VARIABLES   *******************************
