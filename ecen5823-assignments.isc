@@ -7,7 +7,7 @@ stackRoot: C:\SiliconLabs\SimplicityStudio\v4\developer\sdks\gecko_sdk_suite\v2.
 appId: ble
 frameworkRoot: app\bluetooth\appbuilder\fwk
 architecture: efr32~family[B]~series[1]~device_configuration[3]~performance[P]~radio[632]~flash[512K]~temp[G]~package[M]~pins[48]~!module+BRD4104A+gcc
-exactArchitectureToolchain: com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:4.9.3.20150529
+exactArchitectureToolchain: com.silabs.ss.tool.ide.arm.toolchain.gnu.cdt:7.2.1.20170904
 deviceName: ecen5823-assignments
 sourceSampleAppId: soc-empty
 generationDirectory: PATH(ISC_RELATIVE):.
