@@ -10,6 +10,7 @@
 #include "stdio.h"
 #include <inttypes.h>
 
+uint8_t Time;
 /**
  * Instructions for using this module:
  * 1) #include "log.h" in the C file where you'd like to add logging
@@ -61,9 +62,9 @@
 
 #if INCLUDE_LOGGING
 #define LOG_DO(message,level, ...) \
-	printf( "%5"PRIu32":%s:%s: " message "\n", loggerGetTimestamp(), level, __func__, ##__VA_ARGS__ )
+	printf( "%5"PRIu32":%s:%s: " message "\n", loggerGetTimestamp(Time), level, __func__, ##__VA_ARGS__ )
 void logInit();
-uint32_t loggerGetTimestamp();
+uint32_t loggerGetTimestamp(uint8_t);
 void logFlush();
 #else
 /**

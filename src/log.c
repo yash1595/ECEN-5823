@@ -8,16 +8,17 @@
 #include "retargetserial.h"
 #include "log.h"
 #include <stdbool.h>
+#include "LETIMER.h"
 
 #if INCLUDE_LOGGING
 /**
  * @return a timestamp value for the logger, typically based on a free running timer.
  * This will be printed at the beginning of each log message.
  */
-uint32_t loggerGetTimestamp(void)
+uint32_t loggerGetTimestamp(uint8_t RollOver)
 {
-	//return timerGetRunTimeMilliseconds();
-	return 0;
+	uint32_t milliseconds = 1000*((3.0*RollOver)+(((Comp0_Cal()-LETIMER_CounterGet(LETIMER0))*4.0)/32768));//return timerGetRunTimeMilliseconds();
+	return milliseconds;
 }
 
 /**

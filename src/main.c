@@ -38,7 +38,7 @@
 
 #include "log.h"
 #include "i2cspm.h"
-#include "i2c_tempsens.h"
+//#include "i2c_tempsens.h"
 //#include "em_int.h"
 #ifndef MAX_CONNECTIONS
 #define MAX_CONNECTIONS 4
@@ -63,7 +63,7 @@ int main(void)
 
   gpioInit();
 
-  Event=Reset;
+  Init_Globals();
 
   TimerInit();
 
@@ -71,13 +71,11 @@ int main(void)
 
   SLEEP_InitEx(NULL);
 
-  while (1) {
-	  while(Event)
-	  {
-		  I2C_TempInit();
-		  Event=Reset;
-	  }
-	  while(!Event)SleepModeSel();
+  	while(1)
+  	{
+  		Event_Handler();
+  		//SleepModeSel();//if(flag!=S0)SleepModeSel();
+  	}
 
-  }
+
 }

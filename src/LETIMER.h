@@ -37,7 +37,7 @@
 
 #include "i2cspm.h"
 #include "em_i2c.h"
-#define INCLUDE_LOG_DEBUG	1
+#define INCLUDE_LOG_DEBUG 1
 #include "log.h"
 
 
@@ -72,21 +72,34 @@ static const gecko_configuration_t config = {
  //#define CLOCK_DIV  4//cmuClkDiv_1//cmuClkDiv_4
 
 #define TIME_PERIOD (3.00)//700//225//225   //700
-#define ON_TIME     (0.01)   //((uint32_t)(175/10))
+//#define ON_TIME     (0.01)   //((uint32_t)(175/10))
 #define COMP0   ((uint32_t)(0X01))
 #define COMP1   ((uint32_t)(0X02))
 #define TimerInt  ((uint32_t)(0X03))
-#define SLEEP_MODE  sleepEM2
-typedef enum State{Set=1,Reset=0};
+#define SLEEP_MODE  sleepEM3
+typedef enum {i2cisDone=0,TurnPowerOff=2,TurnOnPower=3,StartWrite=4,Idle=5,Incomplete=6,Sleep=7,Wait=8,Sleep1=9}Event;
+typedef enum {PreWrite=0,PostWrite=1,Error=2}State;
+State current;
+Event event;
+uint16_t addr;
+uint8_t command;
+uint8_t i2c_read_data[2];
+uint8_t i2c_write_data[1];
+uint16_t data;
+float temp;
+I2C_TransferSeq_TypeDef    seq;
+I2C_TransferReturn_TypeDef ret;
+uint8_t SleepMode;
+uint8_t RollOver;
 /*#define CLOCK_DIV
 #define CLOCK_SEL
 #define CLOCK_OSC
 */
 
-#if  (SLEEP_MODE)==sleepEM1
-#define CLOCK_DIV 4
-#define CLOCK_SEL  cmuSelect_LFXO
-#define CLOCK_OSC  cmuOsc_LFXO
+#if  (SLEEP_MODE)==sleepEM3
+#define CLOCK_DIV 1
+#define CLOCK_SEL  cmuSelect_ULFRCO
+#define CLOCK_OSC  cmuOsc_ULFRCO
 
 #else
 #define CLOCK_DIV 4
@@ -105,12 +118,16 @@ typedef enum State{Set=1,Reset=0};
  void I2C_ShutDown(void);
  //void InitTransfersAndBuffers(void);
  void I2CPM_TempMeasure(void);
+ void Event_Handler(void);
+ void Init_Globals(void);
+ void LoggerTimeStamp(void);
  //int16_t I2CPM_TempRead(void);
 
- uint8_t Event;
+
  I2C_TransferReturn_TypeDef I2C_Status;
+
 
  //char* ErrorStates[]={"i2cTransferDone","i2cTransferInProgress","i2cTransferNack ","i2cTransferBusErr","i2cTransferArbLost","i2cTransferUsageFault","i2cTransferSwFault"};
 /*****************************************************************/
-#define Comp0_Cal()	(((CMU_ClockFreqGet(cmuClock_LFA)/(CLOCK_DIV*1))*(TIME_PERIOD)))
-#define CounterGet(us_wait)		((uint32_t)(((us_wait*0.000001*CMU_ClockFreqGet(cmuClock_LFA))/CLOCK_DIV)))
+#define Comp0_Cal() (((CMU_ClockFreqGet(cmuClock_LFA)/(CLOCK_DIV*1))*(TIME_PERIOD)))
+#define CounterGet(us_wait)   ((uint32_t)(((us_wait*0.000001*CMU_ClockFreqGet(cmuClock_LFA))/CLOCK_DIV)))

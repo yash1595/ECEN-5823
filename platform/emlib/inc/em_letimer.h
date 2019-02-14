@@ -204,7 +204,7 @@ __STATIC_INLINE void LETIMER_IntClear(LETIMER_TypeDef *letimer, uint32_t flags)
  ******************************************************************************/
 __STATIC_INLINE void LETIMER_IntDisable(LETIMER_TypeDef *letimer, uint32_t flags)
 {
-  letimer->IEN &= ~flags;
+   letimer->IEN &= ~flags;
 }
 
 /***************************************************************************//**
