@@ -74,6 +74,7 @@
 									<listOptionValue builtIn="false" value="RETARGET_VCOM=1"/>
 									<listOptionValue builtIn="false" value="EFR32BG13P632F512GM48=1"/>
 								</option>
+								<option id="gnu.c.compiler.option.warnings.extrawarn.312127267" name="Extra warnings (-Wextra)" superClass="gnu.c.compiler.option.warnings.extrawarn" value="true" valueType="boolean"/>
 								<inputType id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.input.1076921246" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base.1741752652" name="GNU ARM C++ Compiler" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base"/>
@@ -220,6 +221,7 @@
 									<listOptionValue builtIn="false" value="EFR32BG13P632F512GM48=1"/>
 									<listOptionValue builtIn="false" value="INCLUDE_LOGGING=1"/>
 								</option>
+								<option id="gnu.c.compiler.option.warnings.extrawarn.1684738439" superClass="gnu.c.compiler.option.warnings.extrawarn" value="true" valueType="boolean"/>
 								<inputType id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.input.154795327" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base.1101003786" name="GNU ARM C++ Compiler" superClass="com.silabs.ide.si32.gcc.cdt.managedbuild.tool.gnu.cpp.compiler.base"/>
