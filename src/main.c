@@ -69,13 +69,18 @@ int main(void)
 
   gecko_init(&config);
 
-  SLEEP_InitEx(NULL);
+ // SLEEP_InitEx(NULL);
+
 
   	while(1)
   	{
-  		Event_Handler();
-  		//SleepModeSel();//if(flag!=S0)SleepModeSel();
+
+  		evt=gecko_wait_event();
+  		gecko_custom_update(evt);
+  		//Event_Handler();
+
   	}
 
-
 }
+
+

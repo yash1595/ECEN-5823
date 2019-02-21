@@ -173,7 +173,7 @@
 #include "glib_color.h"
 
 /* Display Driver header files */
-#include "dmd/dmd.h"
+#include "dmd.h"
 
 #include "em_types.h"
 

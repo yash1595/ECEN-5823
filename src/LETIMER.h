@@ -40,6 +40,8 @@
 #define INCLUDE_LOG_DEBUG 1
 #include "log.h"
 
+#include "infrastructure.h"
+
 
 //#include "src/i2c_tempsens.h"
 
@@ -76,7 +78,7 @@ static const gecko_configuration_t config = {
 #define COMP0   ((uint32_t)(0X01))
 #define COMP1   ((uint32_t)(0X02))
 #define TimerInt  ((uint32_t)(0X03))
-#define SLEEP_MODE  sleepEM3
+#define SLEEP_MODE  sleepEM2
 typedef enum {i2cisDone=0,TurnPowerOff=2,TurnOnPower=3,StartWrite=4,Idle=5,Incomplete=6,Sleep=7,Wait=8,Sleep1=9}Event;
 typedef enum {PreWrite=0,PostWrite=1,Error=2}State;
 State current;
@@ -91,6 +93,22 @@ I2C_TransferSeq_TypeDef    seq;
 I2C_TransferReturn_TypeDef ret;
 uint8_t SleepMode;
 uint8_t RollOver;
+uint8_t MinConnTime,MaxConnTime;TimeoutVal;
+uint8_t SlaveLatency;
+uint8_t ConnectionHandle;
+uint8_t Notifications_Status;
+uint8_t Event_Read;
+uint32_t LETIMER_Triggered;
+uint32_t WRITE_COMPLETE;
+uint32_t ERROR_I2C;
+uint32_t I2C_INCOMPLETE;
+uint32_t rssi_value;
+int16_t BG13_Min_Power;
+int16_t BG13_Max_Power;
+uint8_t Active_Connection;
+float temp;
+uint8_t event_flag;
+uint8_t count_write;
 /*#define CLOCK_DIV
 #define CLOCK_SEL
 #define CLOCK_OSC
@@ -122,12 +140,12 @@ uint8_t RollOver;
  void Init_Globals(void);
  void LoggerTimeStamp(void);
  //int16_t I2CPM_TempRead(void);
-
+ struct gecko_cmd_packet* evt;
 
  I2C_TransferReturn_TypeDef I2C_Status;
 
 
  //char* ErrorStates[]={"i2cTransferDone","i2cTransferInProgress","i2cTransferNack ","i2cTransferBusErr","i2cTransferArbLost","i2cTransferUsageFault","i2cTransferSwFault"};
 /*****************************************************************/
-#define Comp0_Cal() (((CMU_ClockFreqGet(cmuClock_LFA)/(CLOCK_DIV*1))*(TIME_PERIOD)))
+#define Comp0_Cal() (((CMU_ClockFreqGet(cmuClock_LFA)/(CLOCK_DIV*1))*(TIME_PERIOD))) //CMU_ClockFreqGet(cmuClock_LFA)
 #define CounterGet(us_wait)   ((uint32_t)(((us_wait*0.000001*CMU_ClockFreqGet(cmuClock_LFA))/CLOCK_DIV)))
