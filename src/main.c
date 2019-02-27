@@ -70,6 +70,8 @@ int main(void)
   gecko_init(&config);
 
  // SLEEP_InitEx(NULL);
+  displayInit();
+
 
 
   	while(1)
@@ -77,7 +79,6 @@ int main(void)
 
   		evt=gecko_wait_event();
   		gecko_custom_update(evt);
-  		//Event_Handler();
 
   	}
 

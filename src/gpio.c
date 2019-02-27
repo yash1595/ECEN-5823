@@ -5,8 +5,10 @@
  *      Author: Dan Walkes
  */
 #include "gpio.h"
+#include "log.h"
 #include "em_gpio.h"
 #include <string.h>
+
 
 
 /**
@@ -20,6 +22,7 @@
 
 void gpioInit()
 {
+
 	GPIO_PinModeSet(LED1_port, LED1_pin, gpioModePushPull, false);
 	//GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateStrong);
 	//GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateWeak);
@@ -46,3 +49,22 @@ void gpioLed1SetOff()
 {
 	GPIO_PinOutClear(LED1_port,LED1_pin);
 }
+void gpioEnableDisplay()
+{
+	GPIO_PinOutSet(gpioPortD, 15);//Check
+}
+void gpioSetDisplayExtcomin(bool high)
+{
+	if(high)
+	{
+		GPIO_PinOutSet(gpioPortD,13);
+	}
+
+	else
+	{
+		GPIO_PinOutClear(gpioPortD,13);
+	}
+
+
+}
+

@@ -41,10 +41,16 @@
 #include "log.h"
 
 #include "infrastructure.h"
+#include "display.h"
+#define SCHEDULER_SUPPORTS_DISPLAY_UPDATE_EVENT 1
+#define TIMER_SUPPORTS_1HZ_TIMER_EVENT	1
+//#define CORE_DECLARE_IRQ_STATE        CORE_irqState_t irqState
 
+////////////////////////////
+//#define DISP_UPDATE 	((uint32_t)(3))
 
 //#include "src/i2c_tempsens.h"
-
+uint32_t DISP_UPDATE;
 /* End */
 //#include "em_int.h"
 #ifndef MAX_CONNECTIONS
@@ -73,7 +79,7 @@ static const gecko_configuration_t config = {
  /************************* Macros *****************************/
  //#define CLOCK_DIV  4//cmuClkDiv_1//cmuClkDiv_4
 
-#define TIME_PERIOD (3.00)//700//225//225   //700
+#define TIME_PERIOD (1.00)//700//225//225   //700
 //#define ON_TIME     (0.01)   //((uint32_t)(175/10))
 #define COMP0   ((uint32_t)(0X01))
 #define COMP1   ((uint32_t)(0X02))
@@ -93,7 +99,7 @@ I2C_TransferSeq_TypeDef    seq;
 I2C_TransferReturn_TypeDef ret;
 uint8_t SleepMode;
 uint8_t RollOver;
-uint8_t MinConnTime,MaxConnTime;TimeoutVal;
+uint8_t MinConnTime,MaxConnTime,TimeoutVal;
 uint8_t SlaveLatency;
 uint8_t ConnectionHandle;
 uint8_t Notifications_Status;
@@ -109,6 +115,9 @@ uint8_t Active_Connection;
 float temp;
 uint8_t event_flag;
 uint8_t count_write;
+uint32_t Event_Mask;
+
+//uint8_t already_initiated;
 /*#define CLOCK_DIV
 #define CLOCK_SEL
 #define CLOCK_OSC
@@ -127,7 +136,7 @@ uint8_t count_write;
 
  /************************* Functions ***************************/
  void TimerInit(void);
- uint32_t Comp0_Cal(void);
+ uint32_t Comp0_Cal(float);
  uint32_t Comp1_Cal(void);
  void SleepModeSel(void);
  void timerWaitUs(uint32_t);
@@ -139,13 +148,15 @@ uint8_t count_write;
  void Event_Handler(void);
  void Init_Globals(void);
  void LoggerTimeStamp(void);
+ void timerEnable1HzSchedulerEvent(uint32_t Scheduler_DisplayUpdate);
  //int16_t I2CPM_TempRead(void);
  struct gecko_cmd_packet* evt;
+ struct gecko_msg_system_get_bt_address_rsp_t * AddressBLE;
 
  I2C_TransferReturn_TypeDef I2C_Status;
 
 
  //char* ErrorStates[]={"i2cTransferDone","i2cTransferInProgress","i2cTransferNack ","i2cTransferBusErr","i2cTransferArbLost","i2cTransferUsageFault","i2cTransferSwFault"};
 /*****************************************************************/
-#define Comp0_Cal() (((CMU_ClockFreqGet(cmuClock_LFA)/(CLOCK_DIV*1))*(TIME_PERIOD))) //CMU_ClockFreqGet(cmuClock_LFA)
+#define Comp0_Cal() 	((uint32_t)(CMU_ClockFreqGet(cmuClock_LFA)/(CLOCK_DIV*TIME_PERIOD))) //
 #define CounterGet(us_wait)   ((uint32_t)(((us_wait*0.000001*CMU_ClockFreqGet(cmuClock_LFA))/CLOCK_DIV)))

@@ -17,7 +17,7 @@
  */
 uint32_t loggerGetTimestamp(uint8_t RollOver)
 {
-	uint32_t milliseconds = 1000*((3.0*RollOver)+(((Comp0_Cal()-LETIMER_CounterGet(LETIMER0))*4.0)/32768));//return timerGetRunTimeMilliseconds();
+	uint32_t milliseconds = 1000*((3.0*RollOver)+(((Comp0_Cal()-LETIMER_CounterGet(LETIMER0)*4.0))/32768));//return timerGetRunTimeMilliseconds();
 	return milliseconds;
 }
 

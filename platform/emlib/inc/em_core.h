@@ -101,6 +101,8 @@ extern "C" {
     CORE_EXIT_CRITICAL();               \
   }
 
+
+#define CORE_DECLARE_IRQ_STATE        CORE_irqState_t irqState
 /** Enter CRITICAL section. Assumes that a @ref CORE_DECLARE_IRQ_STATE exist in
  *  scope. */
 #define CORE_ENTER_CRITICAL()   irqState = CORE_EnterCritical()

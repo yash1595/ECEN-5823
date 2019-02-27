@@ -8,22 +8,22 @@
  * 1) Add scheduler and timer events which can provide a 1Hz update for the display EXTCOMIN pin
  *  	through a call to displayUpdate().  Include your scheduler/timer header files in the top of
  *  	display.c.  #define these values in appropriate header files:
- *  	#define SCHEDULER_SUPPORTS_DISPLAY_UPDATE_EVENT 1
- *  	#define TIMER_SUPPORTS_1HZ_TIMER_EVENT	1
+ *  	#define SCHEDULER_SUPPORTS_DISPLAY_UPDATE_EVENT 1	//done
+ *  	#define TIMER_SUPPORTS_1HZ_TIMER_EVENT	1			//done
  *  	and customize the line timerEnable1HzSchedulerEvent(Scheduler_DisplayUpdate) to make the
- *  	appropriate call to your timer/scheduler routine to start this event.
+ *  	appropriate call to your timer/scheduler routine to start this event.	//Done
  *
  * 2) Add functions gpioEnableDisplay() and gpioSetDisplayExtcomin(bool high) to your gpio.c and
  * 		gpio.h files, and include
- * 		#define GPIO_SET_DISPLAY_EXT_COMIN_IMPLEMENTED 	1
+ * 		#define GPIO_SET_DISPLAY_EXT_COMIN_IMPLEMENTED 	1	//done
  * 		and
- *		#define GPIO_DISPLAY_SUPPORT_IMPLEMENTED		1
+ *		#define GPIO_DISPLAY_SUPPORT_IMPLEMENTED		1	//done
  *		definitions in your gpio.h file
  *		** Note that the Blue Gecko development board uses the same pin for both the sensor and display enable
  *		pins.  This means you cannot disable the sensor for load power management if enabling the display.  Your
  *		GPIO routines need to account for this **
  *
- * 3) Call displayInit() before attempting to write the display and after initializing your timer and
+ * 3) Call displayInit() before attempting to write the display and after initializing your timer and //Done
  * scheduler.
  */
 
