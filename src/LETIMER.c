@@ -336,7 +336,10 @@ void Event_Handler(void)
 	  	else if(current==PostWrite)
 	  	{
 	  		LOG_INFO("Entered PostWrite\n");
+	  		CORE_DECLARE_IRQ_STATE;
+			CORE_ENTER_CRITICAL();
 	  		data |= (i2c_read_data[0]<<8)|(i2c_read_data[1]) ;
+	  		CORE_EXIT_CRITICAL();
 	  		temp=((175.72*data)/65535)-46.85;
 	  		LOG_INFO("Temp:%f\n",temp);
 	  		temp=temp*1000;
