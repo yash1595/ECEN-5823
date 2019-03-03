@@ -1,4 +1,5 @@
 #include "LETIMER.h"
+#include "ble_device_type.h"
 
 #include "init_mcu.h"
 #include "init_board.h"
@@ -38,6 +39,8 @@
 
 #include "log.h"
 #include "i2cspm.h"
+//#include "ble_device_type.h"
+//#define DEVICE_IS_BLE_SERVER 0
 //#include "i2c_tempsens.h"
 //#include "em_int.h"
 #ifndef MAX_CONNECTIONS
@@ -48,7 +51,7 @@
 uint8_t bluetooth_stack_heap[DEFAULT_BLUETOOTH_HEAP(MAX_CONNECTIONS)];
 
 /***************************************************************/
-
+//bd_addr Server_Addr = { .addr =  {0xc0, 0x29, 0xef, 0x57, 0x0b, 0x00}};
 
 int main(void)
 {
@@ -69,7 +72,8 @@ int main(void)
 
   gecko_init(&config);
 
- // SLEEP_InitEx(NULL);
+  RETARGET_SerialInit();
+
   displayInit();
 
 
@@ -77,6 +81,7 @@ int main(void)
   	while(1)
   	{
 
+      RETARGET_SerialFlush();
   		evt=gecko_wait_event();
   		gecko_custom_update(evt);
 

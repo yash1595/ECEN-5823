@@ -7,6 +7,7 @@
 #include "LETIMER.h"
 
 
+
 const LETIMER_Init_TypeDef letimer=	//Structure
  {
  		.enable=true,
@@ -15,8 +16,8 @@ const LETIMER_Init_TypeDef letimer=	//Structure
  		.bufTop=false,
  		.out0Pol=false,
  		.out1Pol=false,
-		.ufoa0= letimerUFOAPulse,//false,         /* PWM output on output 0 */
-		.ufoa1= letimerUFOAPulse,//false,       /* PWM output on output 1*/
+		.ufoa0= false,//false,         /* PWM output on output 0 */
+		.ufoa1= false,//false,       /* PWM output on output 1*/
  		.repMode= letimerRepeatFree
   };
 
@@ -36,17 +37,12 @@ void TimerInit(void)
 
 	  LETIMER_Enable(LETIMER0,false);				//Disable the timer
 	  LETIMER_Init(LETIMER0,&letimer);
-	 // LETIMER_RepeatSet(LETIMER0,0,0X01);
-	 // LETIMER_RepeatSet(LETIMER0,1,0X01);
 	  LETIMER_CompareSet(LETIMER0,0,Comp0_Cal());	//Comp0 1.00s
 	  LETIMER_IntSet(LETIMER0,LETIMER_IFC_COMP0);	//0x1->COMP0
 	  NVIC_EnableIRQ(LETIMER0_IRQn);
 	  LETIMER_IntEnable(LETIMER0,LETIMER_IFC_COMP0);//LETIMER_IFC_COMP0
 
 	  LETIMER_Enable(LETIMER0,true);	//Enable the timer
-
-
-
 
  }
 
@@ -74,17 +70,20 @@ void LETIMER0_IRQHandler(void)
 {
 	if(LETIMER_IntGet(LETIMER0)&LETIMER_IFC_COMP0)
 	{
-		LOG_INFO("ENTER INTERRUPT\n");
+		//LOG_INFO("ENTER INTERRUPT\n");
 		LETIMER_IntClear(LETIMER0,LETIMER_IF_COMP0);
 //		LETIMER_CompareSet(LETIMER0,0,Comp0_Cal(1.0));
 		event=TurnOnPower;
 		Event_Mask |= DISP_UPDATE;
 		gecko_external_signal(Event_Mask);
 		++RollOver;
+#if (DEVICE_IS_BLE_SERVER==1) //if server only then
 		if(RollOver%3 == 0){
 			Event_Mask |= LETIMER_Triggered;
 			gecko_external_signal(Event_Mask);
 		}
+#endif
+
 
 	}
 
@@ -209,9 +208,9 @@ void I2C_TempConvertBLE(void)
 	  UINT8_TO_BITSTREAM(p, HTM_flags);
 
 	      /* Convert sensor data to correct temperature format */
-	  temperature = FLT_TO_UINT32(temp, -3);
+	  temperature = FLT_TO_UINT32((temp), -3);
 
-	  /* Convert temperature to bitstream andisplayPrintf(DISPLAY_ROW_TEMPVALUE,"%f",(temp/1000));d place it in the HTM temperature data buffer (htmTempBuffer) */
+	  /* Convert temperature to bitstream andisplayLOG_INFO(DISPLAY_ROW_TEMPVALUE,"%f",(temp/1000));d place it in the HTM temperature data buffer (htmTempBuffer) */
 	  UINT32_TO_BITSTREAM(p, temperature);
 
 	  /* Send indication of the temperature in htmTempBuffer to all "listening" clients.
@@ -463,8 +462,21 @@ void Init_Globals(void)
 	event_flag=0;
 	WRITE_COMPLETE = 2;
 	//ERROR_I2C = 4;
-	I2C_INCOMPLETE = 4;
+	// I2C_INCOMPLETE = 4;
 	count_write=0;
+	printHeader=true;
+	bootToDfu=0;
+	thermoService[0] =  0x09;
+	thermoService[1] = 0x18;
+		// Temperature Measurement characteristic UUID defined by Bluetooth SIG
+	thermoChar[0] =  0x1c;
+	thermoChar[1] = 0x2a;
+	Server_Addr.addr[0]=0xc0; //= { .addr =  {0xc0, 0x29, 0xef, 0x57, 0x0b, 0x00}};
+	Server_Addr.addr[1]=0x29;
+	Server_Addr.addr[2]=0xef;
+	Server_Addr.addr[3]=0x57;
+	Server_Addr.addr[4]=0x0b;
+	Server_Addr.addr[5]=0x00;
 	//already_initiated=0;
 
 }
@@ -476,78 +488,167 @@ void timerEnable1HzSchedulerEvent(uint32_t Scheduler_DisplayUpdate)
 	DISP_UPDATE = Scheduler_DisplayUpdate;
 }
 
+
+
+void initProperties(void)
+{
+	uint8_t i;
+	connProperties.connectionHandle = CONNECTION_HANDLE_INVALID;
+	connProperties.thermometerServiceHandle = SERVICE_HANDLE_INVALID;
+	connProperties.thermometerCharacteristicHandle = CHARACTERISTIC_HANDLE_INVALID;
+	connProperties.temperature = TEMP_INVALID;
+	connProperties.rssi = RSSI_INVALID;
+
+}
+
+uint8_t findServiceInAdvertisement(uint8_t *data, uint8_t len)
+{
+  uint8_t adFieldLength;
+  uint8_t adFieldType;
+  uint8_t i = 0;
+  // Parse advertisement packet
+  while (i < len) {
+    adFieldLength = data[i];
+    adFieldType = data[i + 1];
+  //  LOG_INFO("here");// Partial ($02) or complete ($03) list of 16-bit UUIDs
+    if (adFieldType == 0x02 || adFieldType == 0x03) {
+      // compare UUID to Health Thermometer service UUID
+      if (memcmp(&data[i + 2], thermoService, 2) == 0) {
+        return 1;
+      }
+    }
+    // advance to the next AD struct
+    i = i + adFieldLength + 1;
+  }
+  return 0;
+}
+
+uint8_t findIndexByConnectionHandle(uint8_t connection)
+{
+    if (connProperties.connectionHandle != connection)
+    	return TABLE_INDEX_INVALID;
+    return 1;
+}
+
+void addConnection(uint8_t connection, uint16_t address)
+{
+  connProperties.connectionHandle = connection;
+  connProperties.serverAddress    = address;
+  //activeConnectionsNum++;
+}
+
+void removeConnection(uint8_t connection)
+{
+  uint8_t i;
+  uint8_t table_index = findIndexByConnectionHandle(connection);
+
+connProperties.connectionHandle = CONNECTION_HANDLE_INVALID;
+connProperties.thermometerServiceHandle = SERVICE_HANDLE_INVALID;
+connProperties.thermometerCharacteristicHandle = CHARACTERISTIC_HANDLE_INVALID;
+connProperties.temperature = TEMP_INVALID;
+connProperties.rssi = RSSI_INVALID;
+
+}
+
+float gattUint32ToFloat(const uint8_t *value_start_little_endian)
+{
+	int8_t exponent = (int8_t)value_start_little_endian[3];
+		uint32_t mantissa = value_start_little_endian[0] +
+							(((uint32_t)value_start_little_endian[1]) << 8) +
+							(((uint32_t)value_start_little_endian[2]) << 16);
+		LOG_INFO("%d %d",exponent,mantissa);
+		return (float)mantissa*pow(10,exponent);
+
+
+}
+
+
+
+
 void gecko_custom_update(struct gecko_cmd_packet* evt)
 {
-	gecko_update(evt);
-	switch(BGLIB_MSG_ID(evt->header))
-	{
+  gecko_update(evt);
+  switch(BGLIB_MSG_ID(evt->header))
+  {
 /******************************************************************************
  @brief : This event is triggered once the BLE Stack is initiated.
  @func  : Power is set to 0. Advertising intervals are setup. The BLE address is
- 		  obtained.
+      obtained.
 ******************************************************************************/
 
-		case gecko_evt_system_boot_id:
-			gecko_cmd_system_set_tx_power(0);
+    case gecko_evt_system_boot_id:
 
-			gecko_cmd_le_gap_set_advertise_timing(0, 400, 400, 0, 0);
+    #if (DEVICE_IS_BLE_SERVER==0)
+      LOG_INFO("System Initiated\n");
+        // Set passive scanning on 1Mb PHY
+        gecko_cmd_le_gap_set_discovery_type(le_gap_phy_1m, SCAN_PASSIVE);
+        // Set scan interval and scan window
+        gecko_cmd_le_gap_set_discovery_timing(le_gap_phy_1m, SCAN_INTERVAL, SCAN_WINDOW);
+        // Set the default connection parameters for subsequent connections
+        gecko_cmd_le_gap_set_conn_parameters(CONN_INTERVAL_MIN,
+                                             CONN_INTERVAL_MAX,
+                                             CONN_SLAVE_LATENCY,
+                                             CONN_TIMEOUT);
+        // Start scanning - looking for thermometer devices
+        gecko_cmd_le_gap_start_discovery(le_gap_phy_1m, le_gap_discover_generic);
+        displayPrintf(DISPLAY_ROW_CONNECTION,"Scanning");
+        displayPrintf(DISPLAY_ROW_NAME,"Client");
+        connState = scanning;
+        #else
 
-			gecko_cmd_le_gap_start_advertising(0, le_gap_general_discoverable, le_gap_connectable_scannable);
-			displayPrintf(DISPLAY_ROW_CONNECTION,"Advertising");
-			displayPrintf(DISPLAY_ROW_NAME,"Server");
-			AddressBLE = gecko_cmd_system_get_bt_address();
-			displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",AddressBLE->address.addr[5],
-						AddressBLE->address.addr[4],
-						AddressBLE->address.addr[3],
-						AddressBLE->address.addr[2],
-						AddressBLE->address.addr[1],
-						AddressBLE->address.addr[0]);
+        gecko_cmd_system_set_tx_power(0);
 
-			LOG_INFO("Gecko BLE Setup complete\n");
-			break;
+		gecko_cmd_le_gap_set_advertise_timing(0, 400, 400, 0, 0);
+
+		gecko_cmd_le_gap_start_advertising(0, le_gap_general_discoverable, le_gap_connectable_scannable);
+		displayPrintf(DISPLAY_ROW_CONNECTION,"Advertising");
+		displayPrintf(DISPLAY_ROW_NAME,"Server");
+		//AddressBLE = gecko_cmd_system_get_bt_address();
+
+        #endif
+
+        AddressBLE = gecko_cmd_system_get_bt_address();
+        displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",AddressBLE->address.addr[5],
+        						AddressBLE->address.addr[4],
+        						AddressBLE->address.addr[3],
+        						AddressBLE->address.addr[2],
+        						AddressBLE->address.addr[1],
+        						AddressBLE->address.addr[0]);
+
+        break;
 /******************************************************************************
  @brief : This event is triggered when the client
  @func  : The LETIMER is diabled so that no interrupt triggers at 1s intervals.
 ******************************************************************************/
 
-		case gecko_evt_le_connection_opened_id:
+case gecko_evt_le_gap_scan_response_id:
+			LOG_INFO("Received Scan Response ID\n");
+			//displayPrintf(DISPLAY_ROW_CONNECTION,"Discovering");
+			// Parse advertisement packets
+			if (evt->data.evt_le_gap_scan_response.packet_type == 0) {
+				//LOG_INFO("here");
+			// If a thermometer advertisement is found...
 
-			ConnectionHandle = evt->data.evt_le_connection_opened.connection;
+				if(memcmp(&evt->data.evt_le_gap_scan_response.address.addr[0],
+				&Server_Addr.addr[0], 6) == 0){
 
-			gecko_cmd_le_connection_set_parameters(ConnectionHandle, MinConnTime, MaxConnTime,SlaveLatency,TimeoutVal);
-			displayPrintf(DISPLAY_ROW_CONNECTION,"Connected");
-			displayPrintf(DISPLAY_ROW_NAME,"Server");
-			LOG_INFO("Gecko BLE Connection start\n");
+				// if (findServiceInAdvertisement(&(evt->data.evt_le_gap_scan_response.data.data[0]),
+				// evt->data.evt_le_gap_scan_response.data.len) != 0) {
+				// then stop scanning for a while
+				gecko_cmd_le_gap_end_procedure();
+				// and connect to that device
+				gecko_cmd_le_gap_connect(evt->data.evt_le_gap_scan_response.address,
+														evt->data.evt_le_gap_scan_response.address_type,
+														le_gap_phy_1m);
+				connState = opening;
+
+				}
+			}
 			break;
 
-/******************************************************************************
- @brief : This event is triggered when the client ends the connection.
- @func  : The LETIMER is diabled so that no interrupt triggers at 1s intervals.
-******************************************************************************/
 
-		case gecko_evt_le_connection_closed_id:
-
-			Active_Connection = 0;
-
-			gecko_cmd_system_set_tx_power(0);
-
-			LETIMER_Enable(LETIMER0, false);
-
-			gecko_cmd_le_gap_start_advertising(0, le_gap_general_discoverable, le_gap_connectable_scannable);
-			LOG_INFO("Gecko BLE Connection end\n");
-			displayPrintf(DISPLAY_ROW_CONNECTION,"Advertising");
-			displayPrintf(DISPLAY_ROW_NAME,"Server");
-			displayPrintf(DISPLAY_ROW_TEMPVALUE,"%s"," ");
-			break;
-
-/******************************************************************************
- @brief : This event is triggered when the client asks for the server character-
- 			istic ID.
- @func : If a successful response from client is received Active_Connection = 1.
-******************************************************************************/
-
-		case gecko_evt_gatt_server_characteristic_status_id:
-			LOG_INFO("status_flags=%d",evt->data.evt_gatt_server_characteristic_status.status_flags);
+case gecko_evt_gatt_server_characteristic_status_id: //Server
+		LOG_INFO("status_flags=%d",evt->data.evt_gatt_server_characteristic_status.status_flags);
 			displayPrintf(DISPLAY_ROW_CONNECTION,"Handling Indications");
 
 			if((evt->data.evt_gatt_server_characteristic_status.characteristic == gattdb_Temperature)
@@ -563,82 +664,155 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 			    	}
 
 			    }
-
-			    break;
-/******************************************************************************
- @brief : This event is triggered when an interrupt occurs.
-		  An Event Mask is set to select the source of interrupt.
- @func : Handles interrupts from LETIMER and I2C interrupts.
-******************************************************************************/
-
-		case gecko_evt_system_external_signal_id:
-			    LOG_INFO("External event occured\n");
-			    if(Active_Connection == 1)
-			    {
-
-			    	Event_Read = evt->data.evt_system_external_signal.extsignals;
-			    	if(Event_Read & LETIMER_Triggered )
-			    	{
-			    			/* Begin Critical Section */
-			    			CORE_DECLARE_IRQ_STATE;
-			    			CORE_ENTER_CRITICAL();
-			    				Event_Mask &= ~LETIMER_Triggered ; //Clear the Event Mask
-			    			CORE_EXIT_CRITICAL();
-			    			/* End Critical Section */
-
-			    			Event_Handler();
-			    			LOG_INFO("3s call\n");
-			    	}
-			    	if(Event_Read & WRITE_COMPLETE)
-			    	{
-			    		/* Begin Critical Section */
-			    		CORE_DECLARE_IRQ_STATE;
-			    		CORE_ENTER_CRITICAL();
-			    			Event_Mask &= ~WRITE_COMPLETE;			//Clear the Event Mask
-			    		CORE_EXIT_CRITICAL();
-			    		/* End Critical Section */
-
-			    		LOG_INFO("Write\n");
-
-			    		Event_Handler();
-			    		if(event_flag==1)
-			    		{
-			    			I2C_TempConvertBLE();
-			    			LETIMER_Enable(LETIMER0, true);
-
-			    		}
-			    		gecko_cmd_le_connection_get_rssi(ConnectionHandle);
-
-			    	}
-
-			    	if(Event_Read & DISP_UPDATE)	//8
-			    	{
-			    		/* Begin Critical Section */
-			    		CORE_DECLARE_IRQ_STATE;
-			    		CORE_ENTER_CRITICAL();
-			    			Event_Mask &= ~DISP_UPDATE;				//Clear the Event Mask
-			    		CORE_EXIT_CRITICAL();
-			    		/* End Critical Section */
-			    		displayUpdate();
+	      break;
 
 
-			    		LOG_INFO("Disp update 1s\n");
-			    	}
+case gecko_evt_le_connection_opened_id:
+    	#if(DEVICE_IS_BLE_SERVER==0)
+	    	LOG_INFO("Connection opened ID\n");
+	        // Get last two bytes of sender address
+	        //uint32_t data[6];
+	        addrValue = (uint16_t)(evt->data.evt_le_connection_opened.address.addr[1] << 8) \
+	                    + evt->data.evt_le_connection_opened.address.addr[0];
 
-			    	else Event_Handler();
+	        // Add connection to the connection_properties array
 
-			    }
+	        addConnection(evt->data.evt_le_connection_opened.connection, addrValue);
+	        // Discover Health Thermometer service on the slave device
+	        gecko_cmd_gatt_discover_primary_services_by_uuid(evt->data.evt_le_connection_opened.connection,
+	                                                         2,
+	                                                         (const uint8_t*)thermoService);
+
+	        connState = discoverServices;
+        #else
+        	ConnectionHandle = evt->data.evt_le_connection_opened.connection;
+
+			gecko_cmd_le_connection_set_parameters(ConnectionHandle, MinConnTime, MaxConnTime,SlaveLatency,TimeoutVal);
+			LETIMER_Enable(LETIMER0,true);
+			displayPrintf(DISPLAY_ROW_CONNECTION,"Connected");
+			displayPrintf(DISPLAY_ROW_NAME,"Server");
+			LOG_INFO("Gecko BLE Connection start\n");
+		#endif
+        break;
+
+case gecko_evt_gatt_service_id:
+			LOG_INFO("Service ID\n");
+			tableIndex = findIndexByConnectionHandle(evt->data.evt_gatt_service.connection);
+			if (tableIndex != TABLE_INDEX_INVALID) {
+			// Save service handle for future reference
+			connProperties.thermometerServiceHandle = evt->data.evt_gatt_service.service;
+			}
+			break;
+
+case gecko_evt_gatt_characteristic_id:
+			LOG_INFO("Characteristic ID\n");
+			tableIndex = findIndexByConnectionHandle(evt->data.evt_gatt_characteristic.connection);
+			if (tableIndex != TABLE_INDEX_INVALID) {
+			// Save characteristic handle for future reference
+			connProperties.thermometerCharacteristicHandle = evt->data.evt_gatt_characteristic.characteristic;
+			}
+			break;
+
+case gecko_evt_gatt_procedure_completed_id:
+			LOG_INFO("Procedure Completed ID\n");
+			tableIndex = findIndexByConnectionHandle(evt->data.evt_gatt_procedure_completed.connection);
+			if (tableIndex == TABLE_INDEX_INVALID) {
+			break;
+			}
+			// If service discovery finished
+			if (connState == discoverServices && connProperties.thermometerServiceHandle != SERVICE_HANDLE_INVALID) {
+			LOG_INFO("service discovery finished\n");
+			// Discover thermometer characteristic on the slave device
+			gecko_cmd_gatt_discover_characteristics_by_uuid(evt->data.evt_gatt_procedure_completed.connection,
+			                                  connProperties.thermometerServiceHandle,
+			                                  2,
+			                                  (const uint8_t*)thermoChar);
+			connState = discoverCharacteristics;
+			break;
+			}
+			// If characteristic discovery finished
+			if (connState == discoverCharacteristics && connProperties.thermometerCharacteristicHandle != CHARACTERISTIC_HANDLE_INVALID) {
+			LOG_INFO("characteristic discovery finished\n");
+			// stop discovering
+			gecko_cmd_le_gap_end_procedure();
+			// enable indications
+			gecko_cmd_gatt_set_characteristic_notification(evt->data.evt_gatt_procedure_completed.connection,
+			                                 connProperties.thermometerCharacteristicHandle,
+			                                 gatt_indication);
+			connState = enableIndication;
+			break;
+			}
+			//If indication enable process finished
+			if (connState == enableIndication) {
+			connState = running;
+
+			break;
+			}
+			break;
 
 
-			    break;
-/******************************************************************************
- @brief : This event is triggered when
- 		  gecko_cmd_le_connection_get_rssi(ConnectionHandle); is called.
- @func  : provides the rssi strength of the connected client
-******************************************************************************/
+case gecko_evt_le_connection_closed_id:
+        #if(DEVICE_IS_BLE_SERVER==0)
+        LOG_INFO("connection closed ID\n");
+		displayPrintf(DISPLAY_ROW_CONNECTION,"Discovering");
+		displayPrintf(DISPLAY_ROW_NAME,"Client");
+		displayPrintf(DISPLAY_ROW_TEMPVALUE,"%s"," ");
+        // Active_Connection = 0
+        // Check if need to boot to dfu mode
+        removeConnection(evt->data.evt_le_connection_closed.connection);
+        gecko_cmd_le_gap_start_discovery(le_gap_phy_1m, le_gap_discover_generic);
+        connState = scanning;
+        //}
+        #else
+			Active_Connection = 0;
 
-		case gecko_evt_le_connection_rssi_id:
-			    LOG_INFO("RSSI \n");
+			gecko_cmd_system_set_tx_power(0);
+
+			LETIMER_Enable(LETIMER0, false);
+
+			gecko_cmd_le_gap_start_advertising(0, le_gap_general_discoverable, le_gap_connectable_scannable);
+			LOG_INFO("Gecko BLE Connection end\n");
+			displayPrintf(DISPLAY_ROW_CONNECTION,"Advertising");
+			displayPrintf(DISPLAY_ROW_NAME,"Server");
+			displayPrintf(DISPLAY_ROW_TEMPVALUE,"%s"," ");
+			//LETIMER_Enable(LETIMER0,false);
+
+        #endif
+        break;
+
+ case gecko_evt_gatt_characteristic_value_id:
+			LOG_INFO("characteristic values received\n");
+			displayPrintf(DISPLAY_ROW_CONNECTION,"Handling Indications");
+			charValue = &(evt->data.evt_gatt_characteristic_value.value.data[0]);
+			tableIndex = findIndexByConnectionHandle(evt->data.evt_gatt_characteristic_value.connection);
+			if (tableIndex != TABLE_INDEX_INVALID) {
+			connProperties.temperature = (charValue[1] << 0) + (charValue[2] << 8) + (charValue[3] << 16);
+			}
+			// Send confirmation for the indication
+			gecko_cmd_gatt_send_characteristic_confirmation(evt->data.evt_gatt_characteristic_value.connection);
+			// Trigger RSSI measurement on the connection
+			//
+			gecko_cmd_le_connection_get_rssi(evt->data.evt_gatt_characteristic_value.connection);
+			break;
+
+      // This event is generated when a characteristic value was received e.g. an indication
+
+      // This event is generated when RSSI value was measured
+case gecko_evt_le_connection_rssi_id:
+      #if (DEVICE_IS_BLE_SERVER==0) //Client
+       LOG_INFO("RSSI measured\n");
+        tableIndex = findIndexByConnectionHandle(evt->data.evt_le_connection_rssi.connection);
+        if (tableIndex != TABLE_INDEX_INVALID) {
+          connProperties.rssi = evt->data.evt_le_connection_rssi.rssi;
+          // Event_Mask |= EXT_SIGNAL_PRINT_RESULTS;
+          // gecko_external_signal(Event_Mask);
+        }
+        // Trigger printing
+         gecko_external_signal(EXT_SIGNAL_PRINT_RESULTS);
+
+
+        #else
+        LOG_INFO("RSSI \n");
 	    		// Get RSSI Value
 	    		rssi_value = evt->data.evt_le_connection_rssi.rssi;
 	    		LOG_INFO("%d",rssi_value);
@@ -698,9 +872,125 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 
 	    		gecko_cmd_system_halt(0);
 
-	    		break;
+        #endif
+        break;
 
-	}
-}
+		/******************************************************************************
+		@brief : This event is triggered when an interrupt occurs.
+		An Event Mask is set to select the source of interrupt.
+		@func : Handles interrupts from LETIMER and I2C interrupts.
+		******************************************************************************/
+
+		case gecko_evt_system_external_signal_id:
+			   // LOG_INFO("External event occured\n");
+			//displayPrintf(DISPLAY_ROW_CONNECTION,"Handling Indications");
+			    	Event_Read = evt->data.evt_system_external_signal.extsignals;
+			    	#if (DEVICE_IS_BLE_SERVER==0) //Client
+
+					if (Event_Read & EXT_SIGNAL_PRINT_RESULTS) {
+
+						CORE_DECLARE_IRQ_STATE;
+			    		CORE_ENTER_CRITICAL();
+			    			Event_Mask &= ~EXT_SIGNAL_PRINT_RESULTS;				//Clear the Event Mask
+			    		CORE_EXIT_CRITICAL();
+
+						if (true == printHeader) {
+						printHeader = false;
+						LOG_INFO("ADDR  TEMP   RSSI |ADDR  TEMP   RSSI |ADDR  TEMP   RSSI |ADDR  TEMP   RSSI |\r\n");
+						}
+						if ((TEMP_INVALID != connProperties.temperature) && (RSSI_INVALID != connProperties.rssi) ) {
+						displayPrintf(DISPLAY_ROW_TEMPVALUE,"%f",(float)connProperties.temperature*0.001);//(float)connProperties.temperature*0.001 gattUint32ToFloat(connProperties.temperature)
+
+						LOG_INFO("% 3d", connProperties.rssi);
+
+						} else {
+						LOG_INFO("---- ------ ------|");
+						}
+
+						LOG_INFO("\r");
+					}
 
 
+					 if(Event_Read & DISP_UPDATE)	//8
+			    	{
+			    		/* Begin Critical Section */
+			    		CORE_DECLARE_IRQ_STATE;
+			    		CORE_ENTER_CRITICAL();
+			    			Event_Mask &= ~DISP_UPDATE;				//Clear the Event Mask
+			    		CORE_EXIT_CRITICAL();
+			    		/* End Critical Section */
+			    		displayUpdate();
+
+
+			    		LOG_INFO("Disp update 1s\n");
+			    	}
+			    	break;
+			    	#else //Server
+			    	if(Active_Connection==1)
+			    	{
+			    	if(Event_Read & LETIMER_Triggered )
+			    	{
+			    			/* Begin Critical Section */
+			    			CORE_DECLARE_IRQ_STATE;
+			    			CORE_ENTER_CRITICAL();
+			    				Event_Mask &= ~LETIMER_Triggered ; //Clear the Event Mask
+			    			CORE_EXIT_CRITICAL();
+			    			/* End Critical Section */
+
+			    			Event_Handler();
+			    			LOG_INFO("3s call\n");
+			    	}
+
+
+			    	if(Event_Read & WRITE_COMPLETE)
+			    	{
+			    		/* Begin Critical Section */
+			    		CORE_DECLARE_IRQ_STATE;
+			    		CORE_ENTER_CRITICAL();
+			    			Event_Mask &= ~WRITE_COMPLETE;			//Clear the Event Mask
+			    		CORE_EXIT_CRITICAL();
+			    		/* End Critical Section */
+
+			    		LOG_INFO("Write\n");
+
+			    		Event_Handler();
+			    		if(event_flag==1)
+			    		{
+			    			I2C_TempConvertBLE();
+			    			LETIMER_Enable(LETIMER0, true);
+
+			    		}
+			    		gecko_cmd_le_connection_get_rssi(ConnectionHandle);
+
+			    	}
+
+
+			    	if(Event_Read & DISP_UPDATE)	//8
+			    	{
+			    		/* Begin Critical Section */
+			    		CORE_DECLARE_IRQ_STATE;
+			    		CORE_ENTER_CRITICAL();
+			    			Event_Mask &= ~DISP_UPDATE;				//Clear the Event Mask
+			    		CORE_EXIT_CRITICAL();
+			    		/* End Critical Section */
+			    		displayUpdate();
+
+
+			    		LOG_INFO("Disp update 1s\n");
+			    	}
+
+			    	//else Event_Handler();
+
+
+			    }
+			    	#endif
+
+			    	//else Event_Handler();
+
+			break;
+
+
+
+
+    }
+  }

@@ -42,9 +42,70 @@
 
 #include "infrastructure.h"
 #include "display.h"
+////////////////////////////////////////////////////
+#include "ble_device_type.h"
+
+
+//#define SERVER_BT_ADDRESS {{3}}
+///////////////////////////////////////////////////
 #define SCHEDULER_SUPPORTS_DISPLAY_UPDATE_EVENT 1
 #define TIMER_SUPPORTS_1HZ_TIMER_EVENT	1
 //#define CORE_DECLARE_IRQ_STATE        CORE_irqState_t irqState
+
+#define CONN_INTERVAL_MIN             80   //100ms
+#define CONN_INTERVAL_MAX             80   //100ms
+#define CONN_SLAVE_LATENCY            0    //no latency
+#define CONN_TIMEOUT                  100  //1000ms
+
+#define SCAN_INTERVAL                 16   //10ms
+#define SCAN_WINDOW                   16   //10ms
+#define SCAN_PASSIVE                  0
+
+#define TEMP_INVALID                  (uint32_t)0xFFFFFFFFu
+#define RSSI_INVALID                  (int8_t)127
+#define CONNECTION_HANDLE_INVALID     (uint8_t)0xFFu
+#define SERVICE_HANDLE_INVALID        (uint32_t)0xFFFFFFFFu
+#define CHARACTERISTIC_HANDLE_INVALID (uint16_t)0xFFFFu
+#define TABLE_INDEX_INVALID           (uint8_t)0xFFu
+
+#define EXT_SIGNAL_PRINT_RESULTS      (uint32_t)(16)
+
+// Gecko configuration parameters (see gecko_configuration.h)
+#ifndef MAX_CONNECTIONS
+#define MAX_CONNECTIONS               4
+#endif
+uint8_t bluetooth_stack_heap[DEFAULT_BLUETOOTH_HEAP(MAX_CONNECTIONS)];
+
+typedef enum {
+  scanning,
+  opening,
+  discoverServices,
+  discoverCharacteristics,
+  enableIndication,
+  running
+} ConnState;
+
+typedef struct {
+  uint8_t  connectionHandle;
+  int8_t   rssi;
+  uint16_t serverAddress;
+  uint32_t thermometerServiceHandle;
+  uint16_t thermometerCharacteristicHandle;
+  uint32_t temperature;
+} ConnProperties;
+
+// Flag for indicating DFU Reset must be performed
+uint8_t bootToDfu;
+// Array for holding properties of multiple (parallel) connections
+ConnProperties connProperties;
+// Counter of active connections
+uint8_t activeConnectionsNum;
+// State of the connection under establishment
+ConnState connState;
+// Health Thermometer service UUID defined by Bluetooth SIG
+uint8_t thermoService[2]; //
+// Temperature Measurement characteristic UUID defined by Bluetooth SIG
+uint8_t thermoChar[2]; //= { 0x1c, 0x2a };
 
 ////////////////////////////
 //#define DISP_UPDATE 	((uint32_t)(3))
@@ -116,7 +177,12 @@ float temp;
 uint8_t event_flag;
 uint8_t count_write;
 uint32_t Event_Mask;
+bool printHeader;
+uint8_t* charValue;
+uint16_t addrValue;
+uint8_t tableIndex;
 
+bd_addr Server_Addr;// = { .addr =  {0xc0, 0x29, 0xef, 0x57, 0x0b, 0x00}};
 //uint8_t already_initiated;
 /*#define CLOCK_DIV
 #define CLOCK_SEL
