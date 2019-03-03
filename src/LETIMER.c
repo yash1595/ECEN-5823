@@ -218,6 +218,12 @@ void I2C_TempConvertBLE(void)
 	       *  0xFF as connection ID will send indications to all connections. */
 	  gecko_cmd_gatt_server_send_characteristic_notification(0xFF, gattdb_Temperature, 5, HTM_BUFF);
 	  displayPrintf(DISPLAY_ROW_TEMPVALUE,"%f",(temp/1000));
+	          displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",Server_Addr.addr[5],
+        		Server_Addr.addr[4],
+				Server_Addr.addr[3],
+				Server_Addr.addr[2],
+				Server_Addr.addr[1],
+				Server_Addr.addr[0]);
 	  //gecko_cmd_gatt_server_send_characteristic_notification(0xFF, gattdb_tx_power_level, 5,rssi_value);
 }
 /*********************************************************************************
@@ -593,6 +599,12 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
         gecko_cmd_le_gap_start_discovery(le_gap_phy_1m, le_gap_discover_generic);
         displayPrintf(DISPLAY_ROW_CONNECTION,"Scanning");
         displayPrintf(DISPLAY_ROW_NAME,"Client");
+        displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",Server_Addr.addr[5],
+        		Server_Addr.addr[4],
+				Server_Addr.addr[3],
+				Server_Addr.addr[2],
+				Server_Addr.addr[1],
+				Server_Addr.addr[0]);
         connState = scanning;
         #else
 
@@ -608,6 +620,12 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
         #endif
 
         AddressBLE = gecko_cmd_system_get_bt_address();
+               displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",Server_Addr.addr[5],
+        		Server_Addr.addr[4],
+				Server_Addr.addr[3],
+				Server_Addr.addr[2],
+				Server_Addr.addr[1],
+				Server_Addr.addr[0]);
         displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",AddressBLE->address.addr[5],
         						AddressBLE->address.addr[4],
         						AddressBLE->address.addr[3],
@@ -650,6 +668,12 @@ case gecko_evt_le_gap_scan_response_id:
 case gecko_evt_gatt_server_characteristic_status_id: //Server
 		LOG_INFO("status_flags=%d",evt->data.evt_gatt_server_characteristic_status.status_flags);
 			displayPrintf(DISPLAY_ROW_CONNECTION,"Handling Indications");
+			               displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",Server_Addr.addr[5],
+        		Server_Addr.addr[4],
+				Server_Addr.addr[3],
+				Server_Addr.addr[2],
+				Server_Addr.addr[1],
+				Server_Addr.addr[0]);
 
 			if((evt->data.evt_gatt_server_characteristic_status.characteristic == gattdb_Temperature)
 			    && (evt->data.evt_gatt_server_characteristic_status.status_flags == 0x01))
@@ -755,6 +779,12 @@ case gecko_evt_le_connection_closed_id:
         #if(DEVICE_IS_BLE_SERVER==0)
         LOG_INFO("connection closed ID\n");
 		displayPrintf(DISPLAY_ROW_CONNECTION,"Discovering");
+		               displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",Server_Addr.addr[5],
+        		Server_Addr.addr[4],
+				Server_Addr.addr[3],
+				Server_Addr.addr[2],
+				Server_Addr.addr[1],
+				Server_Addr.addr[0]);
 		displayPrintf(DISPLAY_ROW_NAME,"Client");
 		displayPrintf(DISPLAY_ROW_TEMPVALUE,"%s"," ");
         // Active_Connection = 0
@@ -783,6 +813,12 @@ case gecko_evt_le_connection_closed_id:
  case gecko_evt_gatt_characteristic_value_id:
 			LOG_INFO("characteristic values received\n");
 			displayPrintf(DISPLAY_ROW_CONNECTION,"Handling Indications");
+			               displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",Server_Addr.addr[5],
+        		Server_Addr.addr[4],
+				Server_Addr.addr[3],
+				Server_Addr.addr[2],
+				Server_Addr.addr[1],
+				Server_Addr.addr[0]);
 			charValue = &(evt->data.evt_gatt_characteristic_value.value.data[0]);
 			tableIndex = findIndexByConnectionHandle(evt->data.evt_gatt_characteristic_value.connection);
 			if (tableIndex != TABLE_INDEX_INVALID) {
