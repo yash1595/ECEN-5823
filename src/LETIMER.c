@@ -21,7 +21,7 @@ const LETIMER_Init_TypeDef letimer=	//Structure
  		.repMode= letimerRepeatFree
   };
 
- uint8_t interrupt_flip=0;
+ //uint8_t interrupt_flip=0;
 
 void TimerInit(void)
 {
@@ -47,20 +47,20 @@ void TimerInit(void)
  }
 
 
-void SleepModeSel(void)
-{
-	switch(SLEEP_MODE)
-	{
-	case sleepEM0: while(1);
-				   break;
-	case sleepEM1: EMU_EnterEM1();
-				   break;
-	case sleepEM2: EMU_EnterEM2(true);
-				   break;
-	case sleepEM3: EMU_EnterEM3(false);
-				   break;
-	}
-}
+// void SleepModeSel(void)
+// {
+// 	switch(SLEEP_MODE)
+// 	{
+// 	case sleepEM0: while(1);
+// 				   break;
+// 	case sleepEM1: EMU_EnterEM1();
+// 				   break;
+// 	case sleepEM2: EMU_EnterEM2(true);
+// 				   break;
+// 	case sleepEM3: EMU_EnterEM3(false);
+// 				   break;
+// 	}
+// }
 
 /*********************************************************************************
  * @func :	LETIMER0 IRQ Handler
@@ -92,7 +92,8 @@ void LETIMER0_IRQHandler(void)
 		LETIMER_IntClear(LETIMER0,LETIMER_IF_COMP1);
 		//LETIMER_IntDisable(LETIMER0,_LETIMER_IF_COMP1_MASK);
 		event=StartWrite;
-		gecko_external_signal(LETIMER_Triggered);
+		Event_Mask |= LETIMER_Triggered;
+		gecko_external_signal(Event_Mask);
 		//SLEEP_SleepBlockBegin(sleepEM2);
 	}
 
@@ -106,18 +107,18 @@ void LETIMER0_IRQHandler(void)
  * @param:	None.
  ***********************************************************************/
 
-void I2C_TempInit(void)
-{
-	  LETIMER_IntDisable(LETIMER0,LETIMER_IF_COMP0); //Disable Interrupts
+// void I2C_TempInit(void)
+// {
+// 	  LETIMER_IntDisable(LETIMER0,LETIMER_IF_COMP0); //Disable Interrupts
 
-	  I2C_Startup();
-	  timerWaitUs(80000);
-	  I2CPM_TempMeasure();
-	  I2C_ShutDown();
-	  timerWaitUs(80000);
+// 	  I2C_Startup();
+// 	  timerWaitUs(80000);
+// 	  I2CPM_TempMeasure();
+// 	  I2C_ShutDown();
+// 	  timerWaitUs(80000);
 
-	  LETIMER_IntEnable(LETIMER0,_LETIMER_IF_COMP0_MASK);
-}
+// 	  LETIMER_IntEnable(LETIMER0,_LETIMER_IF_COMP0_MASK);
+// }
 
 /************************************************************************
  * @func :	Sets up the ports for SCl-SDA and Enable pin.
@@ -152,50 +153,50 @@ void I2C_Startup(void)
  * @param:	None
  * @return:	None
  *********************************************************************************/
-void I2CPM_TempMeasure(void)
-{
-	  uint16_t addr = (0x80);
-	  uint8_t command = 0xE3;
-	  I2C_TransferSeq_TypeDef    seq;
-	  I2C_TransferReturn_TypeDef ret;
-	  uint8_t                    i2c_read_data[2];
-	  uint8_t                    i2c_write_data[1];
-	  uint16_t data;
+// void I2CPM_TempMeasure(void)
+// {
+// 	  uint16_t addr = (0x80);
+// 	  uint8_t command = 0xE3;
+// 	  I2C_TransferSeq_TypeDef    seq;
+// 	  I2C_TransferReturn_TypeDef ret;
+// 	  uint8_t                    i2c_read_data[2];
+// 	  uint8_t                    i2c_write_data[1];
+// 	  uint16_t data;
 
 
-	  seq.addr  = addr;
-	  seq.flags = I2C_FLAG_WRITE;
-	  // Select command to issue
-	  i2c_write_data[0] = command;
-	  seq.buf[0].data   = i2c_write_data;
-	  seq.buf[0].len    = 1;
+// 	  seq.addr  = addr;
+// 	  seq.flags = I2C_FLAG_WRITE;
+// 	  // Select command to issue
+// 	  i2c_write_data[0] = command;
+// 	  seq.buf[0].data   = i2c_write_data;
+// 	  seq.buf[0].len    = 1;
 
-	  ret = I2CSPM_Transfer(I2C0, &seq);
+// 	  ret = I2CSPM_Transfer(I2C0, &seq);
 
-	  if(ret!= i2cTransferDone)
-	  {
-		  LOG_ERROR("Error:%x during write\n",ret);
-		  return;
-	  }
-	  seq.flags = I2C_FLAG_READ;
-	  seq.buf[0].data   = i2c_read_data;
-	  seq.buf[0].len    = 2;
+// 	  if(ret!= i2cTransferDone)
+// 	  {
+// 		  LOG_ERROR("Error:%x during write\n",ret);
+// 		  return;
+// 	  }
+// 	  seq.flags = I2C_FLAG_READ;
+// 	  seq.buf[0].data   = i2c_read_data;
+// 	  seq.buf[0].len    = 2;
 
-	  ret = I2CSPM_Transfer(I2C0, &seq);
+// 	  ret = I2CSPM_Transfer(I2C0, &seq);
 
-	  if(ret!=i2cTransferDone)
-	  {
-		  LOG_ERROR("Error:%x during read.\n",ret);
-		  return;
-	  }
+// 	  if(ret!=i2cTransferDone)
+// 	  {
+// 		  LOG_ERROR("Error:%x during read.\n",ret);
+// 		  return;
+// 	  }
 
-	  data |= (i2c_read_data[0]<<8)|(i2c_read_data[1]) ;
-	  temp=(((175.72*data)/65535)-46.85)*1000;
-	  LOG_INFO("%f",temp);
+// 	  data |= (i2c_read_data[0]<<8)|(i2c_read_data[1]) ;
+// 	  temp=(((175.72*data)/65535)-46.85)*1000;
+// 	  LOG_INFO("%f",temp);
 
 
 
-}
+// }
 
 void I2C_TempConvertBLE(void)
 {
@@ -507,27 +508,27 @@ void initProperties(void)
 
 }
 
-uint8_t findServiceInAdvertisement(uint8_t *data, uint8_t len)
-{
-  uint8_t adFieldLength;
-  uint8_t adFieldType;
-  uint8_t i = 0;
-  // Parse advertisement packet
-  while (i < len) {
-    adFieldLength = data[i];
-    adFieldType = data[i + 1];
-  //  LOG_INFO("here");// Partial ($02) or complete ($03) list of 16-bit UUIDs
-    if (adFieldType == 0x02 || adFieldType == 0x03) {
-      // compare UUID to Health Thermometer service UUID
-      if (memcmp(&data[i + 2], thermoService, 2) == 0) {
-        return 1;
-      }
-    }
-    // advance to the next AD struct
-    i = i + adFieldLength + 1;
-  }
-  return 0;
-}
+// uint8_t findServiceInAdvertisement(uint8_t *data, uint8_t len)
+// {
+//   uint8_t adFieldLength;
+//   uint8_t adFieldType;
+//   uint8_t i = 0;
+//   // Parse advertisement packet
+//   while (i < len) {
+//     adFieldLength = data[i];
+//     adFieldType = data[i + 1];
+//   //  LOG_INFO("here");// Partial ($02) or complete ($03) list of 16-bit UUIDs
+//     if (adFieldType == 0x02 || adFieldType == 0x03) {
+//       // compare UUID to Health Thermometer service UUID
+//       if (memcmp(&data[i + 2], thermoService, 2) == 0) {
+//         return 1;
+//       }
+//     }
+//     // advance to the next AD struct
+//     i = i + adFieldLength + 1;
+//   }
+//   return 0;
+// }
 
 uint8_t findIndexByConnectionHandle(uint8_t connection)
 {
@@ -583,7 +584,6 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 ******************************************************************************/
 
     case gecko_evt_system_boot_id:
-
     #if (DEVICE_IS_BLE_SERVER==0)
       LOG_INFO("System Initiated\n");
         // Set passive scanning on 1Mb PHY
@@ -591,10 +591,10 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
         // Set scan interval and scan window
         gecko_cmd_le_gap_set_discovery_timing(le_gap_phy_1m, SCAN_INTERVAL, SCAN_WINDOW);
         // Set the default connection parameters for subsequent connections
-        gecko_cmd_le_gap_set_conn_parameters(CONN_INTERVAL_MIN,
-                                             CONN_INTERVAL_MAX,
-                                             CONN_SLAVE_LATENCY,
-                                             CONN_TIMEOUT);
+        // gecko_cmd_le_gap_set_conn_parameters(CONN_INTERVAL_MIN,
+        //                                      CONN_INTERVAL_MAX,
+        //                                      CONN_SLAVE_LATENCY,
+        //                                      CONN_TIMEOUT);
         // Start scanning - looking for thermometer devices
         gecko_cmd_le_gap_start_discovery(le_gap_phy_1m, le_gap_discover_generic);
         displayPrintf(DISPLAY_ROW_CONNECTION,"Scanning");
@@ -619,13 +619,14 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 
         #endif
 
-        AddressBLE = gecko_cmd_system_get_bt_address();
-               displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",Server_Addr.addr[5],
-        		Server_Addr.addr[4],
-				Server_Addr.addr[3],
-				Server_Addr.addr[2],
-				Server_Addr.addr[1],
-				Server_Addr.addr[0]);
+    //     AddressBLE = gecko_cmd_system_get_bt_address();
+    //            displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",Server_Addr.addr[5],
+    //     		Server_Addr.addr[4],
+				// Server_Addr.addr[3],
+				// Server_Addr.addr[2],
+				// Server_Addr.addr[1],
+				// Server_Addr.addr[0]);
+		AddressBLE = gecko_cmd_system_get_bt_address();
         displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",AddressBLE->address.addr[5],
         						AddressBLE->address.addr[4],
         						AddressBLE->address.addr[3],
@@ -674,6 +675,13 @@ case gecko_evt_gatt_server_characteristic_status_id: //Server
 				Server_Addr.addr[2],
 				Server_Addr.addr[1],
 				Server_Addr.addr[0]);
+	   AddressBLE = gecko_cmd_system_get_bt_address();
+	   displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",AddressBLE->address.addr[5],
+				AddressBLE->address.addr[4],
+				AddressBLE->address.addr[3],
+				AddressBLE->address.addr[2],
+				AddressBLE->address.addr[1],
+				AddressBLE->address.addr[0]);
 
 			if((evt->data.evt_gatt_server_characteristic_status.characteristic == gattdb_Temperature)
 			    && (evt->data.evt_gatt_server_characteristic_status.status_flags == 0x01))
@@ -778,6 +786,13 @@ case gecko_evt_gatt_procedure_completed_id:
 case gecko_evt_le_connection_closed_id:
         #if(DEVICE_IS_BLE_SERVER==0)
         LOG_INFO("connection closed ID\n");
+ 	   AddressBLE = gecko_cmd_system_get_bt_address();
+ 	   displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",AddressBLE->address.addr[5],
+ 				AddressBLE->address.addr[4],
+ 				AddressBLE->address.addr[3],
+ 				AddressBLE->address.addr[2],
+ 				AddressBLE->address.addr[1],
+ 				AddressBLE->address.addr[0]);
 		displayPrintf(DISPLAY_ROW_CONNECTION,"Discovering");
 		               displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",Server_Addr.addr[5],
         		Server_Addr.addr[4],
@@ -812,6 +827,13 @@ case gecko_evt_le_connection_closed_id:
 
  case gecko_evt_gatt_characteristic_value_id:
 			LOG_INFO("characteristic values received\n");
+			   AddressBLE = gecko_cmd_system_get_bt_address();
+			   displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",AddressBLE->address.addr[5],
+						AddressBLE->address.addr[4],
+						AddressBLE->address.addr[3],
+						AddressBLE->address.addr[2],
+						AddressBLE->address.addr[1],
+						AddressBLE->address.addr[0]);
 			displayPrintf(DISPLAY_ROW_CONNECTION,"Handling Indications");
 			               displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",Server_Addr.addr[5],
         		Server_Addr.addr[4],
@@ -919,7 +941,7 @@ case gecko_evt_le_connection_rssi_id:
 
 		case gecko_evt_system_external_signal_id:
 			   // LOG_INFO("External event occured\n");
-			//displayPrintf(DISPLAY_ROW_CONNECTION,"Handling Indications");
+
 			    	Event_Read = evt->data.evt_system_external_signal.extsignals;
 			    	#if (DEVICE_IS_BLE_SERVER==0) //Client
 

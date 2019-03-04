@@ -76,7 +76,7 @@ int main(void)
 
   displayInit();
 
-
+//uint8array tmp;
 
   	while(1)
   	{
