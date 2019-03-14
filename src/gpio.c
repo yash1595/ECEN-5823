@@ -20,17 +20,24 @@
 #define LED1_port gpioPortF
 #define LED1_pin  (5)
 
+#define ButtonPort	gpioPortF
+#define ButtonPin		(6)
+
 void gpioInit()
 {
 
 	GPIO_PinModeSet(LED1_port, LED1_pin, gpioModePushPull, false);
-	//GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateStrong);
-	//GPIO_DriveStrengthSet(LED0_port, gpioDriveStrengthWeakAlternateWeak);
-	//GPIO_PinModeSet(LED0_port, LED0_pin, gpioModePushPull, false);
 	GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthStrongAlternateStrong);
-	//GPIO_DriveStrengthSet(LED1_port, gpioDriveStrengthWeakAlternateWeak);
 	gpioLed1SetOff();
 
+}
+
+void Button0_Init(void)
+{
+	GPIO_PinModeSet(ButtonPort, ButtonPin, gpioModeInput, false);
+	GPIO_IntClear(GPIO_IntGet());
+	GPIO_IntConfig(ButtonPort, ButtonPin, true, true, true);
+	NVIC_EnableIRQ(GPIO_EVEN_IRQn);
 }
 
 void gpioLed0SetOn()

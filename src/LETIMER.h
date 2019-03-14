@@ -69,6 +69,7 @@
 #define TABLE_INDEX_INVALID           (uint8_t)0xFFu
 
 #define EXT_SIGNAL_PRINT_RESULTS      (uint32_t)(16)
+#define SMConfig	(0x0B)
 
 // Gecko configuration parameters (see gecko_configuration.h)
 #ifndef MAX_CONNECTIONS
@@ -146,6 +147,9 @@ static const gecko_configuration_t config = {
 #define COMP1   ((uint32_t)(0X02))
 #define TimerInt  ((uint32_t)(0X03))
 #define SLEEP_MODE  sleepEM2
+#define ButtonPress	(1<<5)
+#define ButtonMask	0x40
+//bool button0_status;
 typedef enum {i2cisDone=0,TurnPowerOff=2,TurnOnPower=3,StartWrite=4,Idle=5,Incomplete=6,Sleep=7,Wait=8,Sleep1=9}Event;
 typedef enum {PreWrite=0,PostWrite=1,Error=2}State;
 State current;
@@ -181,6 +185,13 @@ bool printHeader;
 uint8_t* charValue;
 uint16_t addrValue;
 uint8_t tableIndex;
+uint32_t NoBond;
+uint8_t value;
+uint8_t value1;
+uint8_t BondState;// = NoBond;
+bool PassKeyEvent;// = false;
+bool BondFailFlag;// = false;
+uint8_t temp_Val;
 
 bd_addr Server_Addr;// = { .addr =  {0xc0, 0x29, 0xef, 0x57, 0x0b, 0x00}};
 //uint8_t already_initiated;

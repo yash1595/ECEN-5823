@@ -100,6 +100,20 @@ void LETIMER0_IRQHandler(void)
 
 }
 
+void GPIO_EVEN_IRQHandler(void)
+{
+	static int Interrupt_Read;
+	CORE_AtomicDisableIrq();
+	Interrupt_Read = GPIO_IntGet();
+	GPIO_IntClear(Interrupt_Read);
+	value=GPIO_PinInGet(gpioPortF,6);
+	value^=1;
+	LOG_INFO("Entered:%d\n",value);
+	Event_Mask |= ButtonPress;
+	gecko_external_signal(Event_Mask);
+	CORE_AtomicEnableIrq();
+}
+
 
 /************************************************************************
  * @func :	Initializes the Sensor, initiates 12C communication and takes
@@ -478,12 +492,17 @@ void Init_Globals(void)
 		// Temperature Measurement characteristic UUID defined by Bluetooth SIG
 	thermoChar[0] =  0x1c;
 	thermoChar[1] = 0x2a;
-	Server_Addr.addr[0]=0xc0; //= { .addr =  {0xc0, 0x29, 0xef, 0x57, 0x0b, 0x00}};
-	Server_Addr.addr[1]=0x29;
+	Server_Addr.addr[0]=0xd5; //= { .addr =  {0xc0, 0x29, 0xef, 0x57, 0x0b, 0x00}};
+	Server_Addr.addr[1]=0x2f;
 	Server_Addr.addr[2]=0xef;
 	Server_Addr.addr[3]=0x57;
 	Server_Addr.addr[4]=0x0b;
 	Server_Addr.addr[5]=0x00;
+	NoBond = 0XFF;
+	BondState = NoBond;
+	bool PassKeyEvent = false;
+	bool BondFailFlag = false;
+	temp_Val=0;
 	//already_initiated=0;
 
 }
@@ -569,9 +588,6 @@ float gattUint32ToFloat(const uint8_t *value_start_little_endian)
 
 }
 
-
-
-
 void gecko_custom_update(struct gecko_cmd_packet* evt)
 {
   gecko_update(evt);
@@ -615,17 +631,14 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 		gecko_cmd_le_gap_start_advertising(0, le_gap_general_discoverable, le_gap_connectable_scannable);
 		displayPrintf(DISPLAY_ROW_CONNECTION,"Advertising");
 		displayPrintf(DISPLAY_ROW_NAME,"Server");
+
+		gecko_cmd_sm_delete_bondings();	//Custom_BLE_Server_Delete_Bondings();
+		gecko_cmd_sm_set_passkey(-1);	// -1 for random passkey
+		gecko_cmd_sm_configure(SMConfig, sm_io_capability_displayyesno);
 		//AddressBLE = gecko_cmd_system_get_bt_address();
 
         #endif
 
-    //     AddressBLE = gecko_cmd_system_get_bt_address();
-    //            displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",Server_Addr.addr[5],
-    //     		Server_Addr.addr[4],
-				// Server_Addr.addr[3],
-				// Server_Addr.addr[2],
-				// Server_Addr.addr[1],
-				// Server_Addr.addr[0]);
 		AddressBLE = gecko_cmd_system_get_bt_address();
         displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",AddressBLE->address.addr[5],
         						AddressBLE->address.addr[4],
@@ -639,6 +652,41 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
  @brief : This event is triggered when the client
  @func  : The LETIMER is diabled so that no interrupt triggers at 1s intervals.
 ******************************************************************************/
+
+case gecko_evt_sm_confirm_passkey_id:
+
+
+	PassKeyEvent = true;
+	uint32_t key;
+	key = evt->data.evt_sm_confirm_passkey.passkey; // reading passkey
+	//char Passkey_String[7];
+	//snprintf(Passkey_String, sizeof(Passkey_String), "%0.6ld",
+			//	key);	// printing the passkey
+	displayPrintf(DISPLAY_ROW_PASSKEY,"Passkey-%6d",key);
+	LOG_INFO("Passkey-%6d",key);
+	displayPrintf(DISPLAY_ROW_ACTION,"Confirm with PB0");
+	//NVIC_EnableIRQ(GPIO_EVEN_IRQn);
+	break;
+
+case gecko_evt_sm_bonded_id:
+
+//	LCD_write("Bonded Successfully", LCD_ROW_ACTION);
+//	LCD_write("Connected", LCD_ROW_CONNECTION);
+	displayPrintf(DISPLAY_ROW_PASSKEY,"Bonded Successfully");
+	displayPrintf(DISPLAY_ROW_ACTION,"Connected");
+	BondFailFlag = false;
+	break;
+
+
+case gecko_evt_sm_bonding_failed_id:
+
+	//LCD_write("Bonding Failed", LCD_ROW_ACTION);
+	displayPrintf(DISPLAY_ROW_PASSKEY,"Bonded UnSuccessfully");
+	BondFailFlag = true;
+	gecko_cmd_le_connection_close(ConnectionHandle);
+	break;
+
+
 
 case gecko_evt_le_gap_scan_response_id:
 			LOG_INFO("Received Scan Response ID\n");
@@ -724,6 +772,22 @@ case gecko_evt_le_connection_opened_id:
 			displayPrintf(DISPLAY_ROW_CONNECTION,"Connected");
 			displayPrintf(DISPLAY_ROW_NAME,"Server");
 			LOG_INFO("Gecko BLE Connection start\n");
+
+			BondState = evt->data.evt_le_connection_opened.bonding;
+
+			if(BondState != NoBond)
+			{
+//				LCD_write("Already Bonded", LCD_ROW_ACTION);
+//				LCD_write("Connected", LCD_ROW_CONNECTION);
+				displayPrintf(DISPLAY_ROW_PASSKEY,"Already Bonded");
+				displayPrintf(DISPLAY_ROW_ACTION,"Connected");
+				gecko_cmd_sm_increase_security(ConnectionHandle);	//Encrypting
+			}
+			else
+			{
+				gecko_cmd_sm_increase_security(ConnectionHandle);	//Encrypting
+				temp_Val=1;
+			}
 		#endif
         break;
 
@@ -820,6 +884,8 @@ case gecko_evt_le_connection_closed_id:
 			displayPrintf(DISPLAY_ROW_CONNECTION,"Advertising");
 			displayPrintf(DISPLAY_ROW_NAME,"Server");
 			displayPrintf(DISPLAY_ROW_TEMPVALUE,"%s"," ");
+			displayPrintf(DISPLAY_ROW_PASSKEY," ");
+			displayPrintf(DISPLAY_ROW_ACTION," ");
 			//LETIMER_Enable(LETIMER0,false);
 
         #endif
@@ -984,6 +1050,23 @@ case gecko_evt_le_connection_rssi_id:
 			    	}
 			    	break;
 			    	#else //Server
+			    	if(Event_Read & ButtonPress)	//8
+					{
+						/* Begin Critical Section */
+						CORE_DECLARE_IRQ_STATE;
+						CORE_ENTER_CRITICAL();
+							Event_Mask &= ~ButtonPress;				//Clear the Event Mask
+						CORE_EXIT_CRITICAL();
+						/* End Critical Section */
+						displayUpdate();
+
+						gecko_cmd_sm_passkey_confirm(ConnectionHandle, true);
+						displayPrintf(DISPLAY_ROW_ACTION,"PassKey Accepted");
+
+						uint8_t *ptr = &value;
+						gecko_cmd_gatt_server_send_characteristic_notification(0xFF, gattdb_button_state, 1,ptr);
+						LOG_INFO("Disp update 1s\n");
+					}
 			    	if(Active_Connection==1)
 			    	{
 			    	if(Event_Read & LETIMER_Triggered )
@@ -1036,6 +1119,7 @@ case gecko_evt_le_connection_rssi_id:
 
 			    		LOG_INFO("Disp update 1s\n");
 			    	}
+
 
 			    	//else Event_Handler();
 

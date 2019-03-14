@@ -66,6 +66,8 @@ int main(void)
 
   gpioInit();
 
+  Button0_Init();
+
   Init_Globals();
 
   TimerInit();
@@ -81,7 +83,7 @@ int main(void)
   	while(1)
   	{
 
-      RETARGET_SerialFlush();
+  		RETARGET_SerialFlush();
   		evt=gecko_wait_event();
   		gecko_custom_update(evt);
 
