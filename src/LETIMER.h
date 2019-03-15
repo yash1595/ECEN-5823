@@ -69,7 +69,7 @@
 #define TABLE_INDEX_INVALID           (uint8_t)0xFFu
 
 #define EXT_SIGNAL_PRINT_RESULTS      (uint32_t)(16)
-#define SMConfig	(0x0B)
+#define SMConfig	(0x07)
 
 // Gecko configuration parameters (see gecko_configuration.h)
 #ifndef MAX_CONNECTIONS

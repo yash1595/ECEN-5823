@@ -632,10 +632,10 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 		displayPrintf(DISPLAY_ROW_CONNECTION,"Advertising");
 		displayPrintf(DISPLAY_ROW_NAME,"Server");
 
-		gecko_cmd_sm_delete_bondings();	//Custom_BLE_Server_Delete_Bondings();
-		gecko_cmd_sm_set_passkey(-1);	// -1 for random passkey
+		gecko_cmd_sm_delete_bondings();		//Custom_BLE_Server_Delete_Bondings();
+		gecko_cmd_sm_set_passkey(-1);		// -1 for random passkey
+		gecko_cmd_sm_set_bondable_mode(1);	// Bondable mode enable
 		gecko_cmd_sm_configure(SMConfig, sm_io_capability_displayyesno);
-		//AddressBLE = gecko_cmd_system_get_bt_address();
 
         #endif
 
@@ -659,13 +659,9 @@ case gecko_evt_sm_confirm_passkey_id:
 	PassKeyEvent = true;
 	uint32_t key;
 	key = evt->data.evt_sm_confirm_passkey.passkey; // reading passkey
-	//char Passkey_String[7];
-	//snprintf(Passkey_String, sizeof(Passkey_String), "%0.6ld",
-			//	key);	// printing the passkey
 	displayPrintf(DISPLAY_ROW_PASSKEY,"Passkey-%6d",key);
 	LOG_INFO("Passkey-%6d",key);
 	displayPrintf(DISPLAY_ROW_ACTION,"Confirm with PB0");
-	//NVIC_EnableIRQ(GPIO_EVEN_IRQn);
 	break;
 
 case gecko_evt_sm_bonded_id:
@@ -695,10 +691,6 @@ case gecko_evt_le_gap_scan_response_id:
 
 				if(memcmp(&evt->data.evt_le_gap_scan_response.address.addr[0],
 				&Server_Addr.addr[0], 6) == 0){
-
-				// if (findServiceInAdvertisement(&(evt->data.evt_le_gap_scan_response.data.data[0]),
-				// evt->data.evt_le_gap_scan_response.data.len) != 0) {
-				// then stop scanning for a while
 				gecko_cmd_le_gap_end_procedure();
 				// and connect to that device
 				gecko_cmd_le_gap_connect(evt->data.evt_le_gap_scan_response.address,
@@ -770,19 +762,14 @@ case gecko_evt_le_connection_opened_id:
 			displayPrintf(DISPLAY_ROW_NAME,"Server");
 			LOG_INFO("Gecko BLE Connection start\n");
 
-			BondState = evt->data.evt_le_connection_opened.bonding;
+			BondState = evt->data.evt_le_connection_opened.bonding;	//Checks bonding status
 
-			if(BondState != NoBond)
+			if(BondState != NoBond)								    // Successfull Bonding condition
 			{
 				displayPrintf(DISPLAY_ROW_PASSKEY,"Already Bonded");
 				displayPrintf(DISPLAY_ROW_ACTION,"Connected");
-				//gecko_cmd_sm_increase_security(ConnectionHandle);	//Encrypting
 			}
-			else
-			{
-				//gecko_cmd_sm_increase_security(ConnectionHandle);	//Encrypting
 
-			}
 		#endif
         break;
 
