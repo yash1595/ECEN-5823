@@ -502,7 +502,7 @@ void Init_Globals(void)
 	BondState = NoBond;
 	bool PassKeyEvent = false;
 	bool BondFailFlag = false;
-	temp_Val=0;
+
 	//already_initiated=0;
 
 }
@@ -670,8 +670,6 @@ case gecko_evt_sm_confirm_passkey_id:
 
 case gecko_evt_sm_bonded_id:
 
-//	LCD_write("Bonded Successfully", LCD_ROW_ACTION);
-//	LCD_write("Connected", LCD_ROW_CONNECTION);
 	displayPrintf(DISPLAY_ROW_PASSKEY,"Bonded Successfully");
 	displayPrintf(DISPLAY_ROW_ACTION,"Connected");
 	BondFailFlag = false;
@@ -680,7 +678,6 @@ case gecko_evt_sm_bonded_id:
 
 case gecko_evt_sm_bonding_failed_id:
 
-	//LCD_write("Bonding Failed", LCD_ROW_ACTION);
 	displayPrintf(DISPLAY_ROW_PASSKEY,"Bonded UnSuccessfully");
 	BondFailFlag = true;
 	gecko_cmd_le_connection_close(ConnectionHandle);
@@ -777,16 +774,14 @@ case gecko_evt_le_connection_opened_id:
 
 			if(BondState != NoBond)
 			{
-//				LCD_write("Already Bonded", LCD_ROW_ACTION);
-//				LCD_write("Connected", LCD_ROW_CONNECTION);
 				displayPrintf(DISPLAY_ROW_PASSKEY,"Already Bonded");
 				displayPrintf(DISPLAY_ROW_ACTION,"Connected");
-				gecko_cmd_sm_increase_security(ConnectionHandle);	//Encrypting
+				//gecko_cmd_sm_increase_security(ConnectionHandle);	//Encrypting
 			}
 			else
 			{
-				gecko_cmd_sm_increase_security(ConnectionHandle);	//Encrypting
-				temp_Val=1;
+				//gecko_cmd_sm_increase_security(ConnectionHandle);	//Encrypting
+
 			}
 		#endif
         break;

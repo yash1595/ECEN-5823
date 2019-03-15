@@ -191,7 +191,7 @@ uint8_t value1;
 uint8_t BondState;// = NoBond;
 bool PassKeyEvent;// = false;
 bool BondFailFlag;// = false;
-uint8_t temp_Val;
+
 
 bd_addr Server_Addr;// = { .addr =  {0xc0, 0x29, 0xef, 0x57, 0x0b, 0x00}};
 //uint8_t already_initiated;
