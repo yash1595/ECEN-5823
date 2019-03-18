@@ -6,7 +6,7 @@
  uint8_t ButtonChar[16];
  uint8_t ConnectionHandle;
 
-char* ButtonPressString[]={"Button No","Button Pressed"};
+char* ButtonPressString[]={"Button Released","Button Pressed"};
 typedef struct {
   uint8_t  connectionHandle;
   int8_t   rssi;
