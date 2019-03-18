@@ -13,6 +13,8 @@
  * Set to 1 to configure this build as a BLE server.
  * Set to 0 to configure as a BLE client
  */
+#define CLIENT (0)
+#define SERVER (1)
 #define DEVICE_IS_BLE_SERVER 1
 
 #define SERVER_BT_ADDRESS {{ 0xc0, 0x29, 0xef, 0x57, 0x0b, 0x00}} //{ 0xc0, 0x29, 0xef, 0x57, 0x0b, 0x00 }

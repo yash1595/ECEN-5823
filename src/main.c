@@ -78,6 +78,8 @@ int main(void)
 
   displayInit();
 
+  initProperties();
+
 //uint8array tmp;
 
   	while(1)

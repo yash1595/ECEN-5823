@@ -1,13 +1,25 @@
-/*
- * LETIMER.c
- *
- *  Created on: Jan 28, 2019
- *      Author: yashm
- */
 #include "LETIMER.h"
 
+ uint8_t thermoService[2];
+ uint8_t thermoChar[2];
+ uint8_t ButtonService[16];
+ uint8_t ButtonChar[16];
+ uint8_t ConnectionHandle;
 
+char* ButtonPressString[]={"Button No","Button Pressed"};
+typedef struct {
+  uint8_t  connectionHandle;
+  int8_t   rssi;
+  uint16_t serverAddress;
+  uint32_t thermometerServiceHandle;
+  uint16_t thermometerCharacteristicHandle;
+  uint32_t temperature;
+  uint32_t ButtonServiceHandle;
+  uint16_t ButtonCharacteristicHandle;
+  uint32_t Button;
+}ConnProperties;
 
+ConnProperties connProperties;
 const LETIMER_Init_TypeDef letimer=	//Structure
  {
  		.enable=true,
@@ -20,8 +32,6 @@ const LETIMER_Init_TypeDef letimer=	//Structure
 		.ufoa1= false,//false,       /* PWM output on output 1*/
  		.repMode= letimerRepeatFree
   };
-
- //uint8_t interrupt_flip=0;
 
 void TimerInit(void)
 {
@@ -46,22 +56,6 @@ void TimerInit(void)
 
  }
 
-
-// void SleepModeSel(void)
-// {
-// 	switch(SLEEP_MODE)
-// 	{
-// 	case sleepEM0: while(1);
-// 				   break;
-// 	case sleepEM1: EMU_EnterEM1();
-// 				   break;
-// 	case sleepEM2: EMU_EnterEM2(true);
-// 				   break;
-// 	case sleepEM3: EMU_EnterEM3(false);
-// 				   break;
-// 	}
-// }
-
 /*********************************************************************************
  * @func :	LETIMER0 IRQ Handler
  * @brief:	Sets an Event for scheduler to process in main loop
@@ -70,31 +64,28 @@ void LETIMER0_IRQHandler(void)
 {
 	if(LETIMER_IntGet(LETIMER0)&LETIMER_IFC_COMP0)
 	{
-		//LOG_INFO("ENTER INTERRUPT\n");
 		LETIMER_IntClear(LETIMER0,LETIMER_IF_COMP0);
-//		LETIMER_CompareSet(LETIMER0,0,Comp0_Cal(1.0));
 		event=TurnOnPower;
+		Event_Mask |= EXT_SIGNAL_PRINT_RESULTS;
 		Event_Mask |= DISP_UPDATE;
-		gecko_external_signal(Event_Mask);
 		++RollOver;
-#if (DEVICE_IS_BLE_SERVER==1) //if server only then
+
+#if (DEVICE_IS_BLE_SERVER==SERVER)
 		if(RollOver%3 == 0){
 			Event_Mask |= LETIMER_Triggered;
-			gecko_external_signal(Event_Mask);
+
 		}
 #endif
-
+			gecko_external_signal(Event_Mask);
 
 	}
 
 	else
 	{
 		LETIMER_IntClear(LETIMER0,LETIMER_IF_COMP1);
-		//LETIMER_IntDisable(LETIMER0,_LETIMER_IF_COMP1_MASK);
 		event=StartWrite;
 		Event_Mask |= LETIMER_Triggered;
 		gecko_external_signal(Event_Mask);
-		//SLEEP_SleepBlockBegin(sleepEM2);
 	}
 
 
@@ -113,26 +104,6 @@ void GPIO_EVEN_IRQHandler(void)
 	gecko_external_signal(Event_Mask);
 	CORE_AtomicEnableIrq();
 }
-
-
-/************************************************************************
- * @func :	Initializes the Sensor, initiates 12C communication and takes
- * 			the reading.
- * @param:	None.
- ***********************************************************************/
-
-// void I2C_TempInit(void)
-// {
-// 	  LETIMER_IntDisable(LETIMER0,LETIMER_IF_COMP0); //Disable Interrupts
-
-// 	  I2C_Startup();
-// 	  timerWaitUs(80000);
-// 	  I2CPM_TempMeasure();
-// 	  I2C_ShutDown();
-// 	  timerWaitUs(80000);
-
-// 	  LETIMER_IntEnable(LETIMER0,_LETIMER_IF_COMP0_MASK);
-// }
 
 /************************************************************************
  * @func :	Sets up the ports for SCl-SDA and Enable pin.
@@ -156,61 +127,6 @@ void I2C_Startup(void)
 	  GPIO_PinOutSet(gpioPortD, 15);	  	  	  	  	  	  	  	  	  //Enable the I2C module
 	  timerWaitUs(80000);//timerwaitus(80000);// event=StartWrite;
 }
-
-
-/*********************************************************************************
- * @func :	Measures the temperature
- * @brief:	Sets values for WRITE command to Sensor by modifying the structure
- * 			I2C_TransferSeq_TypeDef. Once I2CTransfer is done, READ command is
- * 			initiated.The final value is 16bits which is converted to float using
- * 			formula given in the datasheet.
- * @param:	None
- * @return:	None
- *********************************************************************************/
-// void I2CPM_TempMeasure(void)
-// {
-// 	  uint16_t addr = (0x80);
-// 	  uint8_t command = 0xE3;
-// 	  I2C_TransferSeq_TypeDef    seq;
-// 	  I2C_TransferReturn_TypeDef ret;
-// 	  uint8_t                    i2c_read_data[2];
-// 	  uint8_t                    i2c_write_data[1];
-// 	  uint16_t data;
-
-
-// 	  seq.addr  = addr;
-// 	  seq.flags = I2C_FLAG_WRITE;
-// 	  // Select command to issue
-// 	  i2c_write_data[0] = command;
-// 	  seq.buf[0].data   = i2c_write_data;
-// 	  seq.buf[0].len    = 1;
-
-// 	  ret = I2CSPM_Transfer(I2C0, &seq);
-
-// 	  if(ret!= i2cTransferDone)
-// 	  {
-// 		  LOG_ERROR("Error:%x during write\n",ret);
-// 		  return;
-// 	  }
-// 	  seq.flags = I2C_FLAG_READ;
-// 	  seq.buf[0].data   = i2c_read_data;
-// 	  seq.buf[0].len    = 2;
-
-// 	  ret = I2CSPM_Transfer(I2C0, &seq);
-
-// 	  if(ret!=i2cTransferDone)
-// 	  {
-// 		  LOG_ERROR("Error:%x during read.\n",ret);
-// 		  return;
-// 	  }
-
-// 	  data |= (i2c_read_data[0]<<8)|(i2c_read_data[1]) ;
-// 	  temp=(((175.72*data)/65535)-46.85)*1000;
-// 	  LOG_INFO("%f",temp);
-
-
-
-// }
 
 void I2C_TempConvertBLE(void)
 {
@@ -447,7 +363,6 @@ void I2C0_IRQHandler(void)
 			{
 				LOG_INFO("ISR2");
 				event=Error;
-				//gecko_external_signal(ERROR_I2C);
 			}
 	}
 	else
@@ -489,7 +404,10 @@ void Init_Globals(void)
 	bootToDfu=0;
 	thermoService[0] =  0x09;
 	thermoService[1] = 0x18;
+
+
 		// Temperature Measurement characteristic UUID defined by Bluetooth SIG
+
 	thermoChar[0] =  0x1c;
 	thermoChar[1] = 0x2a;
 	Server_Addr.addr[0]=0xd5; //= { .addr =  {0xc0, 0x29, 0xef, 0x57, 0x0b, 0x00}};
@@ -502,7 +420,41 @@ void Init_Globals(void)
 	BondState = NoBond;
 	bool PassKeyEvent = false;
 	bool BondFailFlag = false;
+	ButtonService[0]= 0x89;
+	ButtonService[1]=0x62;
+	ButtonService[2]=0x13;
+	ButtonService[3]=0x2d;
+	ButtonService[4]=0x2a;
+	ButtonService[5]=0x65;
+	ButtonService[6]=0xec;
+	ButtonService[7]=0x87;
+	ButtonService[8]=0x3e;
+	ButtonService[9]=0x43;
+	ButtonService[10]=0xc8;
+	ButtonService[11]=0x38;
+	ButtonService[12]=0x01;
+	ButtonService[13]=0x00;
+	ButtonService[14]=0x00;
+	ButtonService[15]=0x00;
 
+	ButtonChar[0]= 0x89;
+	ButtonChar[1]=0x62;
+	ButtonChar[2]=0x13;
+	ButtonChar[3]=0x2d;
+	ButtonChar[4]=0x2a;
+	ButtonChar[5]=0x65;
+	ButtonChar[6]=0xec;
+	ButtonChar[7]=0x87;
+	ButtonChar[8]=0x3e;
+	ButtonChar[9]=0x43;
+	ButtonChar[10]=0xc8;
+	ButtonChar[11]=0x38;
+	ButtonChar[12]=0x02;
+	ButtonChar[13]=0x00;
+	ButtonChar[14]=0x00;
+	ButtonChar[15]=0x00;
+
+	ButtonInitiationFlag=0;
 	//already_initiated=0;
 
 }
@@ -525,29 +477,11 @@ void initProperties(void)
 	connProperties.temperature = TEMP_INVALID;
 	connProperties.rssi = RSSI_INVALID;
 
-}
+	connProperties.ButtonServiceHandle = SERVICE_HANDLE_INVALID;
+	connProperties.ButtonCharacteristicHandle = CHARACTERISTIC_HANDLE_INVALID;
 
-// uint8_t findServiceInAdvertisement(uint8_t *data, uint8_t len)
-// {
-//   uint8_t adFieldLength;
-//   uint8_t adFieldType;
-//   uint8_t i = 0;
-//   // Parse advertisement packet
-//   while (i < len) {
-//     adFieldLength = data[i];
-//     adFieldType = data[i + 1];
-//   //  LOG_INFO("here");// Partial ($02) or complete ($03) list of 16-bit UUIDs
-//     if (adFieldType == 0x02 || adFieldType == 0x03) {
-//       // compare UUID to Health Thermometer service UUID
-//       if (memcmp(&data[i + 2], thermoService, 2) == 0) {
-//         return 1;
-//       }
-//     }
-//     // advance to the next AD struct
-//     i = i + adFieldLength + 1;
-//   }
-//   return 0;
-// }
+
+}
 
 uint8_t findIndexByConnectionHandle(uint8_t connection)
 {
@@ -573,18 +507,8 @@ connProperties.thermometerServiceHandle = SERVICE_HANDLE_INVALID;
 connProperties.thermometerCharacteristicHandle = CHARACTERISTIC_HANDLE_INVALID;
 connProperties.temperature = TEMP_INVALID;
 connProperties.rssi = RSSI_INVALID;
-
-}
-
-float gattUint32ToFloat(const uint8_t *value_start_little_endian)
-{
-	int8_t exponent = (int8_t)value_start_little_endian[3];
-		uint32_t mantissa = value_start_little_endian[0] +
-							(((uint32_t)value_start_little_endian[1]) << 8) +
-							(((uint32_t)value_start_little_endian[2]) << 16);
-		LOG_INFO("%d %d",exponent,mantissa);
-		return (float)mantissa*pow(10,exponent);
-
+connProperties.ButtonServiceHandle = SERVICE_HANDLE_INVALID;
+connProperties.ButtonCharacteristicHandle = CHARACTERISTIC_HANDLE_INVALID;
 
 }
 
@@ -600,18 +524,13 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 ******************************************************************************/
 
     case gecko_evt_system_boot_id:
-    #if (DEVICE_IS_BLE_SERVER==0)
+    #if (DEVICE_IS_BLE_SERVER==CLIENT)			//Client
       LOG_INFO("System Initiated\n");
         // Set passive scanning on 1Mb PHY
         gecko_cmd_le_gap_set_discovery_type(le_gap_phy_1m, SCAN_PASSIVE);
         // Set scan interval and scan window
         gecko_cmd_le_gap_set_discovery_timing(le_gap_phy_1m, SCAN_INTERVAL, SCAN_WINDOW);
-        // Set the default connection parameters for subsequent connections
-        // gecko_cmd_le_gap_set_conn_parameters(CONN_INTERVAL_MIN,
-        //                                      CONN_INTERVAL_MAX,
-        //                                      CONN_SLAVE_LATENCY,
-        //                                      CONN_TIMEOUT);
-        // Start scanning - looking for thermometer devices
+
         gecko_cmd_le_gap_start_discovery(le_gap_phy_1m, le_gap_discover_generic);
         displayPrintf(DISPLAY_ROW_CONNECTION,"Scanning");
         displayPrintf(DISPLAY_ROW_NAME,"Client");
@@ -621,7 +540,10 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 				Server_Addr.addr[2],
 				Server_Addr.addr[1],
 				Server_Addr.addr[0]);
-        connState = scanning;
+         gecko_cmd_sm_delete_bondings();
+         gecko_cmd_sm_set_bondable_mode(1);
+		 gecko_cmd_sm_configure(SMConfig, sm_io_capability_displayyesno);
+         connState = scanning;
         #else
 
         gecko_cmd_system_set_tx_power(0);
@@ -655,7 +577,6 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 
 case gecko_evt_sm_confirm_passkey_id:
 
-
 	PassKeyEvent = true;
 	uint32_t key;
 	key = evt->data.evt_sm_confirm_passkey.passkey; // reading passkey
@@ -665,10 +586,12 @@ case gecko_evt_sm_confirm_passkey_id:
 	break;
 
 case gecko_evt_sm_bonded_id:
-
 	displayPrintf(DISPLAY_ROW_PASSKEY,"Bonded Successfully");
 	displayPrintf(DISPLAY_ROW_ACTION,"Connected");
-	BondFailFlag = false;
+#if(DEVICE_IS_BLE_SERVER==CLIENT)
+	DisplayButtonState=1;
+    LOG_INFO("Bonded\n");
+#endif
 	break;
 
 
@@ -680,19 +603,12 @@ case gecko_evt_sm_bonding_failed_id:
 	break;
 
 
-
 case gecko_evt_le_gap_scan_response_id:
 			LOG_INFO("Received Scan Response ID\n");
-			//displayPrintf(DISPLAY_ROW_CONNECTION,"Discovering");
-			// Parse advertisement packets
 			if (evt->data.evt_le_gap_scan_response.packet_type == 0) {
-				//LOG_INFO("here");
-			// If a thermometer advertisement is found...
-
 				if(memcmp(&evt->data.evt_le_gap_scan_response.address.addr[0],
 				&Server_Addr.addr[0], 6) == 0){
 				gecko_cmd_le_gap_end_procedure();
-				// and connect to that device
 				gecko_cmd_le_gap_connect(evt->data.evt_le_gap_scan_response.address,
 														evt->data.evt_le_gap_scan_response.address_type,
 														le_gap_phy_1m);
@@ -737,21 +653,16 @@ case gecko_evt_gatt_server_characteristic_status_id: //Server
 
 
 case gecko_evt_le_connection_opened_id:
-    	#if(DEVICE_IS_BLE_SERVER==0)
+    	#if(DEVICE_IS_BLE_SERVER==CLIENT)
 	    	LOG_INFO("Connection opened ID\n");
-	        // Get last two bytes of sender address
-	        //uint32_t data[6];
 	        addrValue = (uint16_t)(evt->data.evt_le_connection_opened.address.addr[1] << 8) \
 	                    + evt->data.evt_le_connection_opened.address.addr[0];
-
-	        // Add connection to the connection_properties array
-
+	        ConnectionHandle = evt->data.evt_le_connection_opened.connection;
 	        addConnection(evt->data.evt_le_connection_opened.connection, addrValue);
 	        // Discover Health Thermometer service on the slave device
 	        gecko_cmd_gatt_discover_primary_services_by_uuid(evt->data.evt_le_connection_opened.connection,
 	                                                         2,
 	                                                         (const uint8_t*)thermoService);
-
 	        connState = discoverServices;
         #else
         	ConnectionHandle = evt->data.evt_le_connection_opened.connection;
@@ -764,11 +675,12 @@ case gecko_evt_le_connection_opened_id:
 
 			BondState = evt->data.evt_le_connection_opened.bonding;	//Checks bonding status
 
-			if(BondState != NoBond)								    // Successfull Bonding condition
+			if(BondState != NoBond)								    // Successful Bonding condition
 			{
 				displayPrintf(DISPLAY_ROW_PASSKEY,"Already Bonded");
 				displayPrintf(DISPLAY_ROW_ACTION,"Connected");
 			}
+
 
 		#endif
         break;
@@ -778,7 +690,10 @@ case gecko_evt_gatt_service_id:
 			tableIndex = findIndexByConnectionHandle(evt->data.evt_gatt_service.connection);
 			if (tableIndex != TABLE_INDEX_INVALID) {
 			// Save service handle for future reference
-			connProperties.thermometerServiceHandle = evt->data.evt_gatt_service.service;
+			if(ButtonInitiationFlag==0)
+				connProperties.thermometerServiceHandle = evt->data.evt_gatt_service.service;
+			else
+				connProperties.ButtonServiceHandle = evt->data.evt_gatt_service.service;
 			}
 			break;
 
@@ -787,50 +702,89 @@ case gecko_evt_gatt_characteristic_id:
 			tableIndex = findIndexByConnectionHandle(evt->data.evt_gatt_characteristic.connection);
 			if (tableIndex != TABLE_INDEX_INVALID) {
 			// Save characteristic handle for future reference
-			connProperties.thermometerCharacteristicHandle = evt->data.evt_gatt_characteristic.characteristic;
+			if(ButtonInitiationFlag==0)
+				connProperties.thermometerCharacteristicHandle = evt->data.evt_gatt_characteristic.characteristic;
+			else
+				connProperties.ButtonCharacteristicHandle = evt->data.evt_gatt_characteristic.characteristic;
 			}
 			break;
 
-case gecko_evt_gatt_procedure_completed_id:
+case gecko_evt_gatt_procedure_completed_id:				//Client Event
 			LOG_INFO("Procedure Completed ID\n");
 			tableIndex = findIndexByConnectionHandle(evt->data.evt_gatt_procedure_completed.connection);
 			if (tableIndex == TABLE_INDEX_INVALID) {
+				LOG_INFO("Failed Discovery\n");
 			break;
 			}
-			// If service discovery finished
-			if (connState == discoverServices && connProperties.thermometerServiceHandle != SERVICE_HANDLE_INVALID) {
-			LOG_INFO("service discovery finished\n");
+
+			if (connState == discoverServices ) {
+			LOG_INFO("service discovery finished thermometer\n");
+
 			// Discover thermometer characteristic on the slave device
+			if(ButtonInitiationFlag==0 && connProperties.thermometerServiceHandle != SERVICE_HANDLE_INVALID)
+			{
+				ButtonInitiationFlag=1;
+				gecko_cmd_gatt_discover_primary_services_by_uuid(evt->data.evt_gatt_procedure_completed.connection,
+					                                                         16,
+					                                                         (const uint8_t*)ButtonService);
+
+			}
+			else if(ButtonInitiationFlag==1 && connProperties.ButtonServiceHandle != SERVICE_HANDLE_INVALID){
+			LOG_INFO("service discovery finished button\n");
+			ButtonInitiationFlag=0;
 			gecko_cmd_gatt_discover_characteristics_by_uuid(evt->data.evt_gatt_procedure_completed.connection,
-			                                  connProperties.thermometerServiceHandle,
-			                                  2,
-			                                  (const uint8_t*)thermoChar);
-			connState = discoverCharacteristics;
-			break;
+											  connProperties.thermometerServiceHandle,
+											  2,
+											  (const uint8_t*)thermoChar);
+			connState = discoverCharacteristics;			//Update the state only after both the conditions have been met.
 			}
-			// If characteristic discovery finished
-			if (connState == discoverCharacteristics && connProperties.thermometerCharacteristicHandle != CHARACTERISTIC_HANDLE_INVALID) {
-			LOG_INFO("characteristic discovery finished\n");
-			// stop discovering
-			gecko_cmd_le_gap_end_procedure();
-			// enable indications
-			gecko_cmd_gatt_set_characteristic_notification(evt->data.evt_gatt_procedure_completed.connection,
-			                                 connProperties.thermometerCharacteristicHandle,
-			                                 gatt_indication);
-			connState = enableIndication;
-			break;
-			}
-			//If indication enable process finished
-			if (connState == enableIndication) {
-			connState = running;
 
 			break;
+			}
+
+			if (connState == discoverCharacteristics ){
+
+			//connState = discoverCharacteristics;
+			if(ButtonInitiationFlag == 0 && connProperties.thermometerCharacteristicHandle != CHARACTERISTIC_HANDLE_INVALID){
+				ButtonInitiationFlag=1;
+			// Discover thermometer characteristic on the slave device
+				gecko_cmd_gatt_discover_characteristics_by_uuid(evt->data.evt_gatt_procedure_completed.connection,
+											  connProperties.ButtonServiceHandle,
+											  16,
+											  (const uint8_t*)ButtonChar);
+			}
+			else if(ButtonInitiationFlag == 1 && connProperties.ButtonCharacteristicHandle != CHARACTERISTIC_HANDLE_INVALID){
+				ButtonInitiationFlag=0;
+				gecko_cmd_gatt_set_characteristic_notification(evt->data.evt_gatt_procedure_completed.connection,
+												 connProperties.thermometerCharacteristicHandle,
+												 gatt_indication);
+				connState = enableIndication;
+			}
+			break;
+			}
+
+			if (connState == enableIndication) {
+				if(ButtonInitiationFlag==0)
+				{
+					ButtonInitiationFlag=1;
+					gecko_cmd_gatt_set_characteristic_notification(evt->data.evt_gatt_procedure_completed.connection,
+													 connProperties.ButtonCharacteristicHandle,
+													 gatt_indication);
+				}
+				else
+				{
+					ButtonInitiationFlag=0;
+					gecko_cmd_sm_increase_security(evt->data.evt_gatt_procedure_completed.connection);
+					connState = running;
+					LOG_INFO("Indication set\n");
+				}
+
 			}
 			break;
 
 
 case gecko_evt_le_connection_closed_id:
-        #if(DEVICE_IS_BLE_SERVER==0)
+        #if(DEVICE_IS_BLE_SERVER==CLIENT)
         LOG_INFO("connection closed ID\n");
  	   AddressBLE = gecko_cmd_system_get_bt_address();
  	   displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",AddressBLE->address.addr[5],
@@ -846,14 +800,15 @@ case gecko_evt_le_connection_closed_id:
 				Server_Addr.addr[2],
 				Server_Addr.addr[1],
 				Server_Addr.addr[0]);
+       	DisplayButtonState=0;
 		displayPrintf(DISPLAY_ROW_NAME,"Client");
 		displayPrintf(DISPLAY_ROW_TEMPVALUE,"%s"," ");
-        // Active_Connection = 0
-        // Check if need to boot to dfu mode
+		displayPrintf(DISPLAY_ROW_PASSKEY,"%s"," ");
+		displayPrintf(DISPLAY_ROW_ACTION,"%s"," ");
         removeConnection(evt->data.evt_le_connection_closed.connection);
         gecko_cmd_le_gap_start_discovery(le_gap_phy_1m, le_gap_discover_generic);
         connState = scanning;
-        //}
+
         #else
 			Active_Connection = 0;
 
@@ -868,7 +823,6 @@ case gecko_evt_le_connection_closed_id:
 			displayPrintf(DISPLAY_ROW_TEMPVALUE,"%s"," ");
 			displayPrintf(DISPLAY_ROW_PASSKEY," ");
 			displayPrintf(DISPLAY_ROW_ACTION," ");
-			//LETIMER_Enable(LETIMER0,false);
 
         #endif
         break;
@@ -892,7 +846,18 @@ case gecko_evt_le_connection_closed_id:
 			charValue = &(evt->data.evt_gatt_characteristic_value.value.data[0]);
 			tableIndex = findIndexByConnectionHandle(evt->data.evt_gatt_characteristic_value.connection);
 			if (tableIndex != TABLE_INDEX_INVALID) {
-			connProperties.temperature = (charValue[1] << 0) + (charValue[2] << 8) + (charValue[3] << 16);
+
+				if(connProperties.thermometerCharacteristicHandle==evt->data.evt_gatt_characteristic_value.characteristic)
+				{
+					LOG_INFO("%d%d%d%d",charValue[0],charValue[1],charValue[2],charValue[3],charValue[4]);
+					connProperties.temperature = (charValue[1] << 0) + (charValue[2] << 8) + (charValue[3] << 16);
+				}
+				else if(connProperties.ButtonCharacteristicHandle==evt->data.evt_gatt_characteristic_value.characteristic)
+				{
+					LOG_INFO("%d%d%d%d",charValue[0],charValue[1],charValue[2],charValue[3],charValue[4]);
+					connProperties.Button = (charValue[1] << 0) + (charValue[2] << 8) + (charValue[3] << 16);
+				}
+
 			}
 			// Send confirmation for the indication
 			gecko_cmd_gatt_send_characteristic_confirmation(evt->data.evt_gatt_characteristic_value.connection);
@@ -901,17 +866,13 @@ case gecko_evt_le_connection_closed_id:
 			gecko_cmd_le_connection_get_rssi(evt->data.evt_gatt_characteristic_value.connection);
 			break;
 
-      // This event is generated when a characteristic value was received e.g. an indication
 
-      // This event is generated when RSSI value was measured
 case gecko_evt_le_connection_rssi_id:
-      #if (DEVICE_IS_BLE_SERVER==0) //Client
+      #if (DEVICE_IS_BLE_SERVER==CLIENT) //Client
        LOG_INFO("RSSI measured\n");
         tableIndex = findIndexByConnectionHandle(evt->data.evt_le_connection_rssi.connection);
         if (tableIndex != TABLE_INDEX_INVALID) {
           connProperties.rssi = evt->data.evt_le_connection_rssi.rssi;
-          // Event_Mask |= EXT_SIGNAL_PRINT_RESULTS;
-          // gecko_external_signal(Event_Mask);
         }
         // Trigger printing
          gecko_external_signal(EXT_SIGNAL_PRINT_RESULTS);
@@ -988,10 +949,21 @@ case gecko_evt_le_connection_rssi_id:
 		******************************************************************************/
 
 		case gecko_evt_system_external_signal_id:
-			   // LOG_INFO("External event occured\n");
 
 			    	Event_Read = evt->data.evt_system_external_signal.extsignals;
-			    	#if (DEVICE_IS_BLE_SERVER==0) //Client
+			    	#if (DEVICE_IS_BLE_SERVER==CLIENT) //Client
+			    	if(Event_Read & ButtonPress)	//8
+					{
+						/* Begin Critical Section */
+						CORE_DECLARE_IRQ_STATE;
+						CORE_ENTER_CRITICAL();
+							Event_Mask &= ~ButtonPress;				//Clear the Event Mask
+						CORE_EXIT_CRITICAL();
+						/* End Critical Section */
+						displayUpdate();
+						gecko_cmd_sm_passkey_confirm(ConnectionHandle, true);
+
+					}
 
 					if (Event_Read & EXT_SIGNAL_PRINT_RESULTS) {
 
@@ -1000,21 +972,12 @@ case gecko_evt_le_connection_rssi_id:
 			    			Event_Mask &= ~EXT_SIGNAL_PRINT_RESULTS;				//Clear the Event Mask
 			    		CORE_EXIT_CRITICAL();
 
-						if (true == printHeader) {
-						printHeader = false;
-						LOG_INFO("ADDR  TEMP   RSSI |ADDR  TEMP   RSSI |ADDR  TEMP   RSSI |ADDR  TEMP   RSSI |\r\n");
+						if(connProperties.temperature != TEMP_INVALID)
+							displayPrintf(DISPLAY_ROW_TEMPVALUE,"%f",(float)connProperties.temperature*0.001);
+						if(DisplayButtonState==1)
+							displayPrintf(DISPLAY_ROW_ACTION,"%s",ButtonPressString[(uint8_t)connProperties.Button]);
+
 						}
-						if ((TEMP_INVALID != connProperties.temperature) && (RSSI_INVALID != connProperties.rssi) ) {
-						displayPrintf(DISPLAY_ROW_TEMPVALUE,"%f",(float)connProperties.temperature*0.001);//(float)connProperties.temperature*0.001 gattUint32ToFloat(connProperties.temperature)
-
-						LOG_INFO("% 3d", connProperties.rssi);
-
-						} else {
-						LOG_INFO("---- ------ ------|");
-						}
-
-						LOG_INFO("\r");
-					}
 
 
 					 if(Event_Read & DISP_UPDATE)	//8
@@ -1041,12 +1004,29 @@ case gecko_evt_le_connection_rssi_id:
 						CORE_EXIT_CRITICAL();
 						/* End Critical Section */
 						displayUpdate();
+						//edit here
 
-						gecko_cmd_sm_passkey_confirm(ConnectionHandle, true);
-						displayPrintf(DISPLAY_ROW_ACTION,"PassKey Accepted");
+						if(PassKeyEvent == true)
+						{
+							PassKeyEvent = false;
+							gecko_cmd_sm_passkey_confirm(ConnectionHandle, true);
+							displayPrintf(DISPLAY_ROW_ACTION,"PassKey Accepted");
+						}
+						else
+						{
+							uint8_t *ptr = &value;
+							uint8_t BTN_BUFF[2]; 		// Buffer to store the data  - Button status and Flags.
+							uint8_t BTN_flags = 0x00;   // Flags for Button State.
+							uint8_t *p = BTN_BUFF; 		// Pointer to store the BTN_BUFF buffer.
 
-						uint8_t *ptr = &value;
-						gecko_cmd_gatt_server_send_characteristic_notification(0xFF, gattdb_button_state, 1,ptr);
+							UINT8_TO_BITSTREAM(p, BTN_flags);
+							UINT8_TO_BITSTREAM(p, value);
+
+							gecko_cmd_gatt_server_send_characteristic_notification(0xFF, gattdb_button_state,2,BTN_BUFF);
+							displayPrintf(DISPLAY_ROW_ACTION,"Button:%d",value);
+
+						}
+
 						LOG_INFO("Disp update 1s\n");
 					}
 			    	if(Active_Connection==1)
@@ -1098,23 +1078,14 @@ case gecko_evt_le_connection_rssi_id:
 			    		/* End Critical Section */
 			    		displayUpdate();
 
-
 			    		LOG_INFO("Disp update 1s\n");
 			    	}
-
-
-			    	//else Event_Handler();
-
 
 			    }
 			    	#endif
 
-			    	//else Event_Handler();
-
 			break;
 
-
-
-
     }
+
   }

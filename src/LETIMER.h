@@ -42,15 +42,11 @@
 
 #include "infrastructure.h"
 #include "display.h"
-////////////////////////////////////////////////////
+
 #include "ble_device_type.h"
 
-
-//#define SERVER_BT_ADDRESS {{3}}
-///////////////////////////////////////////////////
 #define SCHEDULER_SUPPORTS_DISPLAY_UPDATE_EVENT 1
 #define TIMER_SUPPORTS_1HZ_TIMER_EVENT	1
-//#define CORE_DECLARE_IRQ_STATE        CORE_irqState_t irqState
 
 #define CONN_INTERVAL_MIN             80   //100ms
 #define CONN_INTERVAL_MAX             80   //100ms
@@ -71,7 +67,6 @@
 #define EXT_SIGNAL_PRINT_RESULTS      (uint32_t)(16)
 #define SMConfig	(0x07)
 
-// Gecko configuration parameters (see gecko_configuration.h)
 #ifndef MAX_CONNECTIONS
 #define MAX_CONNECTIONS               4
 #endif
@@ -86,35 +81,27 @@ typedef enum {
   running
 } ConnState;
 
-typedef struct {
-  uint8_t  connectionHandle;
-  int8_t   rssi;
-  uint16_t serverAddress;
-  uint32_t thermometerServiceHandle;
-  uint16_t thermometerCharacteristicHandle;
-  uint32_t temperature;
-} ConnProperties;
-
 // Flag for indicating DFU Reset must be performed
 uint8_t bootToDfu;
-// Array for holding properties of multiple (parallel) connections
-ConnProperties connProperties;
 // Counter of active connections
 uint8_t activeConnectionsNum;
 // State of the connection under establishment
 ConnState connState;
 // Health Thermometer service UUID defined by Bluetooth SIG
-uint8_t thermoService[2]; //
+extern uint8_t thermoService[2]; //
 // Temperature Measurement characteristic UUID defined by Bluetooth SIG
-uint8_t thermoChar[2]; //= { 0x1c, 0x2a };
+extern uint8_t thermoChar[2]; //= { 0x1c, 0x2a };
+//
+extern uint8_t ButtonService[16]; //
+// Temperature Measurement characteristic UUID defined by Bluetooth SIG
+extern uint8_t ButtonChar[16]; //= { 0x1c, 0x2a };
 
-////////////////////////////
-//#define DISP_UPDATE 	((uint32_t)(3))
+uint8_t ButtonInitiationFlag;
 
-//#include "src/i2c_tempsens.h"
+uint8_t DisplayButtonState;
+
 uint32_t DISP_UPDATE;
-/* End */
-//#include "em_int.h"
+
 #ifndef MAX_CONNECTIONS
 #define MAX_CONNECTIONS 4
 #endif
@@ -141,8 +128,8 @@ static const gecko_configuration_t config = {
  /************************* Macros *****************************/
  //#define CLOCK_DIV  4//cmuClkDiv_1//cmuClkDiv_4
 
-#define TIME_PERIOD (1.00)//700//225//225   //700
-//#define ON_TIME     (0.01)   //((uint32_t)(175/10))
+#define TIME_PERIOD (1.00)
+
 #define COMP0   ((uint32_t)(0X01))
 #define COMP1   ((uint32_t)(0X02))
 #define TimerInt  ((uint32_t)(0X03))
@@ -166,7 +153,7 @@ uint8_t SleepMode;
 uint8_t RollOver;
 uint8_t MinConnTime,MaxConnTime,TimeoutVal;
 uint8_t SlaveLatency;
-uint8_t ConnectionHandle;
+extern uint8_t ConnectionHandle;
 uint8_t Notifications_Status;
 uint8_t Event_Read;
 uint32_t LETIMER_Triggered;
@@ -186,19 +173,15 @@ uint8_t* charValue;
 uint16_t addrValue;
 uint8_t tableIndex;
 uint32_t NoBond;
-uint8_t value;
+uint32_t value;
 uint8_t value1;
-uint8_t BondState;// = NoBond;
-bool PassKeyEvent;// = false;
-bool BondFailFlag;// = false;
+uint8_t BondState;
+bool PassKeyEvent;
+bool BondFailFlag;
 
 
-bd_addr Server_Addr;// = { .addr =  {0xc0, 0x29, 0xef, 0x57, 0x0b, 0x00}};
-//uint8_t already_initiated;
-/*#define CLOCK_DIV
-#define CLOCK_SEL
-#define CLOCK_OSC
-*/
+
+bd_addr Server_Addr;
 
 #if  (SLEEP_MODE)==sleepEM3
 #define CLOCK_DIV 1
@@ -220,20 +203,16 @@ bd_addr Server_Addr;// = { .addr =  {0xc0, 0x29, 0xef, 0x57, 0x0b, 0x00}};
  void I2C_TempInit(void);
  void I2C_Startup(void);
  void I2C_ShutDown(void);
- //void InitTransfersAndBuffers(void);
  void I2CPM_TempMeasure(void);
  void Event_Handler(void);
  void Init_Globals(void);
  void LoggerTimeStamp(void);
  void timerEnable1HzSchedulerEvent(uint32_t Scheduler_DisplayUpdate);
- //int16_t I2CPM_TempRead(void);
+
  struct gecko_cmd_packet* evt;
  struct gecko_msg_system_get_bt_address_rsp_t * AddressBLE;
 
  I2C_TransferReturn_TypeDef I2C_Status;
 
-
- //char* ErrorStates[]={"i2cTransferDone","i2cTransferInProgress","i2cTransferNack ","i2cTransferBusErr","i2cTransferArbLost","i2cTransferUsageFault","i2cTransferSwFault"};
-/*****************************************************************/
-#define Comp0_Cal() 	((uint32_t)(CMU_ClockFreqGet(cmuClock_LFA)/(CLOCK_DIV*TIME_PERIOD))) //
+#define Comp0_Cal() 	((uint32_t)(CMU_ClockFreqGet(cmuClock_LFA)/(CLOCK_DIV*TIME_PERIOD)))
 #define CounterGet(us_wait)   ((uint32_t)(((us_wait*0.000001*CMU_ClockFreqGet(cmuClock_LFA))/CLOCK_DIV)))

@@ -9,5 +9,6 @@ ALL OK
 Error/Warning output
 WARNING: 2a1c length attribute is 17 but actual value length is 1. 17 will be used.
 WARNING: 2902 length attribute is 2 but actual value length is 1. 2 will be used.
+WARNING: 0000000238c8433e87ec652a2d136289 length attribute is 17 but actual value length is 1. 17 will be used.
 
 

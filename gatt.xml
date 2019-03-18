@@ -76,7 +76,7 @@
     <informativeText>Abstract:  The Health Thermometer service exposes temperature and other data from a thermometer intended for healthcare and fitness applications.  Summary:  The Health Thermometer service is instantiated as a Primary Service. There are one or more instantiations of the Health Thermometer service per device claiming conformance with this specification.  </informativeText>
     
     <!--Temperature Measurement-->
-    <characteristic id="YASH_2" name="Temperature Measurement" sourceId="org.bluetooth.characteristic.temperature_measurement" uuid="2A1C">
+    <characteristic id="Temperature" name="Temperature Measurement" sourceId="org.bluetooth.characteristic.temperature_measurement" uuid="2A1C">
       <informativeText/>
       <value length="17" type="hex" variable_length="false">YASH</value>
       <properties indicate="true" indicate_requirement="mandatory" notify="false" notify_requirement="excluded" read="false" read_requirement="excluded" reliable_write="false" reliable_write_requirement="excluded" write="false" write_no_response="false" write_no_response_requirement="excluded" write_requirement="excluded"/>
@@ -147,7 +147,7 @@
     <!--ECEN5823 Encrypted Button State-->
     <characteristic id="button_state" name="ECEN5823 Encrypted Button State" sourceId="custom.type" uuid="00000002-38c8-433e-87ec-652a2d136289">
       <informativeText>Custom characteristic</informativeText>
-      <value length="1" type="hex" variable_length="false">0x00</value>
+      <value length="17" type="hex" variable_length="false">0x00</value>
       <properties encrypted_read="true" encrypted_read_requirement="mandatory" indicate="true" indicate_requirement="mandatory"/>
     </characteristic>
   </service>
