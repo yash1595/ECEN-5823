@@ -72,21 +72,21 @@
 #endif
 uint8_t bluetooth_stack_heap[DEFAULT_BLUETOOTH_HEAP(MAX_CONNECTIONS)];
 
-typedef enum {
-  scanning,
-  opening,
-  discoverServices,
-  discoverCharacteristics,
-  enableIndication,
-  running
-} ConnState;
+//typedef enum {
+//  scanning,
+//  opening,
+//  discoverServices,
+//  discoverCharacteristics,
+//  enableIndication,
+//  running
+//} ConnState;
 
 // Flag for indicating DFU Reset must be performed
 uint8_t bootToDfu;
 // Counter of active connections
 uint8_t activeConnectionsNum;
 // State of the connection under establishment
-ConnState connState;
+//ConnState connState;
 // Health Thermometer service UUID defined by Bluetooth SIG
 extern uint8_t thermoService[2]; //
 // Temperature Measurement characteristic UUID defined by Bluetooth SIG
@@ -109,22 +109,22 @@ uint32_t DISP_UPDATE;
 uint8_t bluetooth_stack_heap[DEFAULT_BLUETOOTH_HEAP(MAX_CONNECTIONS)];
 
 // Gecko configuration parameters (see gecko_configuration.h)
-static const gecko_configuration_t config = {
-  .config_flags = 0,
-  .sleep.flags = SLEEP_FLAGS_DEEP_SLEEP_ENABLE,
-  .bluetooth.max_connections = MAX_CONNECTIONS,
-  .bluetooth.heap = bluetooth_stack_heap,
-  .bluetooth.heap_size = sizeof(bluetooth_stack_heap),
-  .bluetooth.sleep_clock_accuracy = 100, // ppm
-  .gattdb = &bg_gattdb_data,
-  .ota.flags = 0,
-  .ota.device_name_len = 3,
-  .ota.device_name_ptr = "OTA",
-#if (HAL_PA_ENABLE) && defined(FEATURE_PA_HIGH_POWER)
-  .pa.config_enable = 1, // Enable high power PA
-  .pa.input = GECKO_RADIO_PA_INPUT_VBAT, // Configure PA input to VBAT
-#endif // (HAL_PA_ENABLE) && defined(FEATURE_PA_HIGH_POWER)
-};
+//static const gecko_configuration_t config = {
+//  .config_flags = 0,
+//  .sleep.flags = SLEEP_FLAGS_DEEP_SLEEP_ENABLE,
+//  .bluetooth.max_connections = MAX_CONNECTIONS,
+//  .bluetooth.heap = bluetooth_stack_heap,
+//  .bluetooth.heap_size = sizeof(bluetooth_stack_heap),
+//  .bluetooth.sleep_clock_accuracy = 100, // ppm
+//  .gattdb = &bg_gattdb_data,
+//  .ota.flags = 0,
+//  .ota.device_name_len = 3,
+//  .ota.device_name_ptr = "OTA",
+//#if (HAL_PA_ENABLE) && defined(FEATURE_PA_HIGH_POWER)
+//  .pa.config_enable = 1, // Enable high power PA
+//  .pa.input = GECKO_RADIO_PA_INPUT_VBAT, // Configure PA input to VBAT
+//#endif // (HAL_PA_ENABLE) && defined(FEATURE_PA_HIGH_POWER)
+//};
  /************************* Macros *****************************/
  //#define CLOCK_DIV  4//cmuClkDiv_1//cmuClkDiv_4
 
@@ -135,12 +135,12 @@ static const gecko_configuration_t config = {
 #define TimerInt  ((uint32_t)(0X03))
 #define SLEEP_MODE  sleepEM2
 #define ButtonPress	(1<<5)
-#define ButtonMask	0x40
+#define ButtonMask	(0x40)
 //bool button0_status;
-typedef enum {i2cisDone=0,TurnPowerOff=2,TurnOnPower=3,StartWrite=4,Idle=5,Incomplete=6,Sleep=7,Wait=8,Sleep1=9}Event;
-typedef enum {PreWrite=0,PostWrite=1,Error=2}State;
-State current;
-Event event;
+//typedef enum {i2cisDone=0,TurnPowerOff=2,TurnOnPower=3,StartWrite=4,Idle=5,Incomplete=6,Sleep=7,Wait=8,Sleep1=9}Event;
+//typedef enum {PreWrite=0,PostWrite=1,Error=2}State;
+//State current;
+//Event event;
 uint16_t addr;
 uint8_t command;
 uint8_t i2c_read_data[2];
@@ -196,7 +196,7 @@ bd_addr Server_Addr;
 
  /************************* Functions ***************************/
  void TimerInit(void);
- uint32_t Comp0_Cal(float);
+// uint32_t Comp0_Cal(void);
  uint32_t Comp1_Cal(void);
  void SleepModeSel(void);
  void timerWaitUs(uint32_t);

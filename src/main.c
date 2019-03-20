@@ -1,4 +1,7 @@
 #include "LETIMER.h"
+#include "I2C.h"
+#include "BLE.h"
+
 #include "ble_device_type.h"
 
 #include "init_mcu.h"

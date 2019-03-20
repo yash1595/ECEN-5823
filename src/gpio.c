@@ -8,7 +8,7 @@
 #include "log.h"
 #include "em_gpio.h"
 #include <string.h>
-
+#include "LETIMER.h"
 
 
 /**
@@ -73,5 +73,19 @@ void gpioSetDisplayExtcomin(bool high)
 	}
 
 
+}
+
+void GPIO_EVEN_IRQHandler(void)
+{
+	static int Interrupt_Read;
+	CORE_AtomicDisableIrq();
+	Interrupt_Read = GPIO_IntGet();
+	GPIO_IntClear(Interrupt_Read);
+	value=GPIO_PinInGet(gpioPortF,6);
+	value^=1;
+	LOG_INFO("Entered:%d\n",value);
+	Event_Mask |= ButtonPress;
+	gecko_external_signal(Event_Mask);
+	CORE_AtomicEnableIrq();
 }
 
